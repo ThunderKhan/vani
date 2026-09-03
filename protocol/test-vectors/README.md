@@ -1,0 +1,17 @@
+# Protocol Test Vectors
+
+Populate this directory once byte-level encoding is frozen.
+
+Required cases:
+1. minimal routine message;
+2. Hindi Unicode;
+3. Tamil Unicode;
+4. Odia Unicode;
+5. critical number/negation fields;
+6. ACK;
+7. fragmented bundle;
+8. maximum legal bundle;
+9. invalid oversized bundle;
+10. tampered authentication;
+11. replayed message;
+12. unsupported major version.

@@ -1,0 +1,82 @@
+{
+  "protocol": "Syntax6 Semantic Bundle Protocol",
+  "status": "draft-logical-schema",
+  "version": 1,
+  "fields": [
+    {
+      "name": "protocol_version",
+      "type": "uint",
+      "required": true
+    },
+    {
+      "name": "message_id",
+      "type": "bytes/string-id",
+      "required": true
+    },
+    {
+      "name": "source_id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "destination",
+      "type": "id/group",
+      "required": true
+    },
+    {
+      "name": "language_code",
+      "type": "enum/string",
+      "required": true
+    },
+    {
+      "name": "priority",
+      "type": "enum",
+      "required": true
+    },
+    {
+      "name": "message_type",
+      "type": "enum",
+      "required": true
+    },
+    {
+      "name": "transcript",
+      "type": "utf8",
+      "required": "speech-message"
+    },
+    {
+      "name": "expiry",
+      "type": "lifetime",
+      "required": true
+    },
+    {
+      "name": "hop_limit",
+      "type": "uint",
+      "required": true
+    },
+    {
+      "name": "critical_fields",
+      "type": "array",
+      "required": false
+    },
+    {
+      "name": "confidence_summary",
+      "type": "object",
+      "required": false
+    },
+    {
+      "name": "ack_policy",
+      "type": "enum",
+      "required": true
+    },
+    {
+      "name": "copy_budget",
+      "type": "uint",
+      "required": false
+    },
+    {
+      "name": "security_data",
+      "type": "bytes/object",
+      "required": true
+    }
+  ]
+}

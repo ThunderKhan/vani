@@ -1,0 +1,99 @@
+# MVP Specification
+
+## MVP definition
+
+For this project, MVP means **minimum credible end-to-end system**, not a toy demo.
+
+The MVP must prove the complete communication thesis on physical Android devices with internet disabled.
+
+## Required MVP vertical slice
+
+```text
+PTT press
+ -> capture speech
+ -> endpoint utterance
+ -> offline STT
+ -> show/edit/confirm transcript
+ -> construct authenticated semantic bundle
+ -> direct BLE/local-Wi-Fi transfer
+ -> validate on receiver
+ -> offline TTS
+ -> playback
+ -> acknowledgement returned
+```
+
+## MVP acceptance criteria
+
+### Offline
+- airplane-mode test;
+- network access blocked;
+- cold app start succeeds;
+- no remote inference;
+- no remote authentication requirement.
+
+### Speech
+- at least one complete real-device flow before scaling;
+- all ten languages represented before MVP is declared complete;
+- language pack presence checked before recording;
+- transcript errors visible and correctable;
+- TTS produces intelligible speech on receiver.
+
+### Protocol
+- `protocol_version`;
+- `message_id`;
+- source/destination;
+- language;
+- priority;
+- transcript;
+- expiry;
+- ACK policy;
+- integrity/authentication data;
+- bounded payload length;
+- deterministic serialization.
+
+### Delivery
+- queue;
+- retry timeout;
+- deduplication;
+- received/delivered distinction;
+- acknowledgement path.
+
+### Metrics
+- endpoint latency;
+- STT latency;
+- bundle size;
+- network latency;
+- TTS first-audio latency;
+- end-to-end latency;
+- peak RAM;
+- model footprint.
+
+## MVP demonstration
+
+1. Disable internet on both phones.
+2. Select a language.
+3. Speak a realistic instruction.
+4. Show transcript.
+5. Show semantic packet size.
+6. Send.
+7. Play synthesized speech remotely.
+8. Acknowledge on destination.
+9. Show true delivery state at sender.
+10. Display measured pipeline timings.
+
+## MVP failure requirements
+
+The demo remains defensible when:
+- peer disconnects;
+- language model is unavailable;
+- STT confidence is insufficient;
+- a duplicate arrives;
+- a packet fails validation;
+- ACK is lost;
+- receiver TTS fails.
+
+Each case must produce a truthful UI state.
+
+## MVP exit gate
+
+No multi-hop, adaptive routing, publication claim, or hardware extension should distract from the project until this complete path is stable.
