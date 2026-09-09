@@ -1,0 +1,38 @@
+name: Android M0 feasibility probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "gradle.properties"
+      - "android/feasibility-probe/**"
+      - ".github/workflows/android-feasibility-probe.yml"
+  pull_request:
+    paths:
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "gradle.properties"
+      - "android/feasibility-probe/**"
+      - ".github/workflows/android-feasibility-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+      - name: Install Android SDK platform
+        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
+      - name: Unit test and assemble probe
+        run: gradle :android:feasibility-probe:testDebugUnitTest :android:feasibility-probe:assembleDebug --stacktrace

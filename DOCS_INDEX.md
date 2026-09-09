@@ -12,6 +12,8 @@
 
 - `Context.md`
 - `README.md`
+- `android/README.md`
+- `android/feasibility-probe/` — disposable M0 physical Unicode-link probe
 - `docs/API_CONTRACTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/BENCHMARK_PLAN.md`
