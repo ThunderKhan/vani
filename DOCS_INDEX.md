@@ -1,5 +1,14 @@
 # Documentation Index
 
+## Execution convention
+
+- **Canonical implementation roadmap:** `docs/ROADMAP.md`
+- **Quick milestone reference:** `docs/MILESTONES.md`
+- Implementation uses one sequence only: **M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6**.
+- `Tier 1`, `Tier 2`, and `Tier 3` are maturity labels, not alternate phases.
+
+## Files
+
 - `Context.md`
 - `README.md`
 - `docs/API_CONTRACTS.md`
