@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-09",
+  "purpose": "M0 feasibility candidate inventory. Candidate presence is not proof of Android deployability or final licence clearance.",
+  "required_languages": [
+    {"name": "Hindi", "code": "hi"},
+    {"name": "Gujarati", "code": "gu"},
+    {"name": "Marathi", "code": "mr"},
+    {"name": "Kannada", "code": "kn"},
+    {"name": "Malayalam", "code": "ml"},
+    {"name": "Tamil", "code": "ta"},
+    {"name": "Telugu", "code": "te"},
+    {"name": "Odia", "code": "or"},
+    {"name": "Bengali", "code": "bn"},
+    {"name": "English", "code": "en"}
+  ],
+  "candidates": [
+    {
+      "id": "vakyansh-wav2vec2-asr",
+      "role": "asr",
+      "status": "candidate",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn", "en"],
+      "source": "https://github.com/Open-Speech-EkStep/vakyansh-models",
+      "code_license": "MIT",
+      "weights_license": "MIT claimed by the upstream wav2vec2 experimentation project for pretrained models; verify the exact selected artifact before redistribution",
+      "dataset_provenance": "Must be audited per selected language/checkpoint before distribution or publication claims",
+      "license_status": "review_required",
+      "android_status": "not_proven",
+      "redistribution_status": "review_required",
+      "notes": "Coverage candidate for all ten required languages. Upstream TorchScript releases do not currently prove an all-ten Android path, so mobile deployability remains an M0 blocker.",
+      "evidence": [
+        "https://github.com/Open-Speech-EkStep/vakyansh-models",
+        "https://github.com/Open-Speech-EkStep/vakyansh-wav2vec2-experimentation"
+      ]
+    },
+    {
+      "id": "ai4bharat-indicconformer-asr",
+      "role": "asr",
+      "status": "candidate",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn"],
+      "source": "https://huggingface.co/ai4bharat/indic-conformer-600m-multilingual",
+      "code_license": "MIT (upstream project/model card)",
+      "weights_license": "MIT (upstream model card)",
+      "dataset_provenance": "See upstream model card and cited Indic speech corpora; audit exact checkpoint provenance before final selection",
+      "license_status": "provisional_clear",
+      "android_status": "not_proven",
+      "redistribution_status": "review_required",
+      "notes": "Strong nine-Indian-language accuracy candidate. English is outside this checkpoint's stated target set. The 600M multilingual model is not assumed low-end Android feasible until measured.",
+      "evidence": [
+        "https://huggingface.co/ai4bharat/indic-conformer-600m-multilingual"
+      ]
+    },
+    {
+      "id": "vosk-small-hi-en-asr",
+      "role": "asr",
+      "status": "candidate",
+      "languages": ["hi", "en"],
+      "source": "https://alphacephei.com/vosk/models",
+      "code_license": "Apache-2.0 (Vosk)",
+      "weights_license": "Apache-2.0 for the listed small Hindi/English model entries",
+      "dataset_provenance": "See per-model upstream notes; must be recorded for the exact selected model",
+      "license_status": "provisional_clear",
+      "android_status": "documented_mobile_candidate",
+      "redistribution_status": "provisional_clear",
+      "notes": "Useful first real-device ASR probe because Vosk documents small mobile-oriented models. It is not the ten-language solution.",
+      "evidence": [
+        "https://alphacephei.com/vosk/models"
+      ]
+    },
+    {
+      "id": "openai-whisper-asr",
+      "role": "asr",
+      "status": "baseline_only",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "bn", "en"],
+      "excluded_languages": ["or"],
+      "source": "https://github.com/openai/whisper",
+      "code_license": "MIT",
+      "weights_license": "MIT (repository distribution)",
+      "dataset_provenance": "See Whisper paper/model documentation",
+      "license_status": "provisional_clear",
+      "android_status": "documented_third_party_runtime",
+      "redistribution_status": "provisional_clear",
+      "notes": "Not an all-ten candidate: the current Whisper language token map does not list Odia/Oriya. Keep only as a baseline for supported languages.",
+      "evidence": [
+        "https://github.com/openai/whisper/blob/main/whisper/tokenizer.py",
+        "https://github.com/ggerganov/whisper.cpp"
+      ]
+    },
+    {
+      "id": "vakyansh-glowtts-hifigan-tts",
+      "role": "tts",
+      "status": "candidate",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn", "en"],
+      "source": "https://github.com/Open-Speech-EkStep/vakyansh-models",
+      "code_license": "MIT",
+      "weights_license": "Repository/model artifact scope must be confirmed for the exact selected voice",
+      "dataset_provenance": "Must be audited per language/voice before redistribution or publication claims",
+      "license_status": "review_required",
+      "android_status": "not_proven",
+      "redistribution_status": "review_required",
+      "notes": "All-ten coverage candidate from the Vakyansh model inventory. Android runtime/operator compatibility is not established.",
+      "evidence": [
+        "https://github.com/Open-Speech-EkStep/vakyansh-models",
+        "https://github.com/Open-Speech-EkStep/vakyansh-tts"
+      ]
+    },
+    {
+      "id": "ai4bharat-indic-tts",
+      "role": "tts",
+      "status": "candidate",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn", "en"],
+      "source": "https://github.com/AI4Bharat/Indic-TTS",
+      "code_license": "MIT",
+      "weights_license": "Repository-level licence is MIT; verify explicit scope for selected release assets",
+      "dataset_provenance": "See upstream Indic TTS corpus/release documentation; audit selected voice",
+      "license_status": "review_required",
+      "android_status": "not_proven",
+      "redistribution_status": "review_required",
+      "notes": "Coverage/quality candidate, not a mobile-feasibility assumption. Current release archives are large enough that storage/runtime feasibility must be measured before shortlisting.",
+      "evidence": [
+        "https://github.com/AI4Bharat/Indic-TTS",
+        "https://github.com/AI4Bharat/Indic-TTS/releases"
+      ]
+    },
+    {
+      "id": "flite-english-tts",
+      "role": "tts",
+      "status": "candidate",
+      "languages": ["en"],
+      "source": "https://github.com/festvox/flite",
+      "code_license": "CMU permissive licence",
+      "weights_license": "Bundled voice provenance/licence must be recorded for the chosen voice",
+      "dataset_provenance": "Depends on chosen bundled voice",
+      "license_status": "review_required",
+      "android_status": "portable_phone_candidate",
+      "redistribution_status": "review_required",
+      "notes": "Compact English fallback candidate for a first TTS device probe; not an Indic-language solution.",
+      "evidence": [
+        "https://github.com/festvox/flite"
+      ]
+    },
+    {
+      "id": "espeak-ng-tts",
+      "role": "tts",
+      "status": "reference_only",
+      "languages": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn", "en"],
+      "source": "https://github.com/espeak-ng/espeak-ng",
+      "code_license": "GPL-3.0-or-later",
+      "weights_license": "Not applicable in the neural-checkpoint sense; language/voice data is part of the GPL project and must be licence-audited as distributed",
+      "dataset_provenance": "Rule/voice data is upstream project material; inspect notices before any reuse",
+      "license_status": "incompatible_without_distribution_decision",
+      "android_status": "documented_android_support",
+      "redistribution_status": "conditional",
+      "notes": "Useful compact coverage reference, but not counted as the preferred candidate because GPL integration can impose reciprocal distribution obligations on the app distribution strategy.",
+      "evidence": [
+        "https://github.com/espeak-ng/espeak-ng",
+        "https://github.com/espeak-ng/espeak-ng/blob/master/docs/languages.md"
+      ]
+    }
+  ]
+}

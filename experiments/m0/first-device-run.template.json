@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "experiment_id": "M0-DEVICE-001",
+  "git_commit": "0000000",
+  "build_variant": "m0-feasibility",
+  "started_at_utc": "2026-09-09T00:00:00Z",
+  "finished_at_utc": null,
+  "offline_conditions": {
+    "internet_blocked": false,
+    "airplane_mode": false,
+    "remote_api_calls_observed": false,
+    "local_radios_enabled": [],
+    "notes": "Template only. Set these from the actual physical-device run."
+  },
+  "device_profile": {
+    "manufacturer": "REPLACE_ME",
+    "model": "REPLACE_ME",
+    "soc": "REPLACE_ME",
+    "android_version": "REPLACE_ME",
+    "ram_mb": 256,
+    "battery_percent_start": null,
+    "battery_percent_end": null,
+    "temperature_c_start": null,
+    "temperature_c_end": null
+  },
+  "model": null,
+  "runtime_configuration": {
+    "runtime": "REPLACE_ME",
+    "runtime_version": "",
+    "threads": 1
+  },
+  "language": "hi",
+  "audio_fixture_or_dataset_reference": null,
+  "network_topology_and_seed": null,
+  "thermal_and_power_conditions": null,
+  "result": "blocked",
+  "raw_stage_metrics": {},
+  "derived_metrics": {},
+  "failure_reason": "Template has not been executed on hardware.",
+  "notes": "Never replace placeholders with guessed measurements."
+}

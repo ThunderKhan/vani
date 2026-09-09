@@ -4,6 +4,7 @@
 
 - **Canonical implementation roadmap:** `docs/ROADMAP.md`
 - **Quick milestone reference:** `docs/MILESTONES.md`
+- **Current M0 gate status:** `docs/M0_STATUS.md`
 - Implementation uses one sequence only: **M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6**.
 - `Tier 1`, `Tier 2`, and `Tier 3` are maturity labels, not alternate phases.
 
@@ -29,6 +30,8 @@
 - `docs/JUDGE_QA.md`
 - `docs/LICENSING.md`
 - `docs/LIMITATIONS.md`
+- `docs/M0_REQUIREMENTS.md`
+- `docs/M0_STATUS.md`
 - `docs/MILESTONES.md`
 - `docs/MODEL_EVALUATION.md`
 - `docs/MODEL_SELECTION.md`
@@ -58,6 +61,13 @@
 - `docs/adr/ADR-003-critical-fields.md`
 - `docs/adr/ADR-004-no-custom-crypto.md`
 - `docs/adr/ADR-005-language-packs.md`
+- `experiments/m0/README.md`
+- `experiments/m0/first-device-run.template.json`
+- `experiments/schema/experiment-record.schema.json`
 - `experiments/templates/EXPERIMENT_TEMPLATE.md`
+- `models/manifests/README.md`
+- `models/manifests/m0_candidates.json`
 - `protocol/schema/semantic_bundle.logical.json`
 - `protocol/test-vectors/README.md`
+- `tools/m0_validate.py`
+- `tests/test_m0_validate.py`

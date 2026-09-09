@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntax6.local/schemas/experiment-record.schema.json",
+  "title": "VANI Experiment Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "git_commit",
+    "build_variant",
+    "started_at_utc",
+    "offline_conditions",
+    "device_profile",
+    "runtime_configuration",
+    "language",
+    "result",
+    "raw_stage_metrics",
+    "derived_metrics"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "experiment_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "git_commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "build_variant": {"type": "string", "minLength": 1},
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "finished_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "offline_conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["internet_blocked", "airplane_mode", "remote_api_calls_observed"],
+      "properties": {
+        "internet_blocked": {"type": "boolean"},
+        "airplane_mode": {"type": "boolean"},
+        "remote_api_calls_observed": {"type": "boolean"},
+        "local_radios_enabled": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "notes": {"type": "string"}
+      }
+    },
+    "device_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manufacturer", "model", "android_version", "ram_mb"],
+      "properties": {
+        "manufacturer": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "soc": {"type": "string"},
+        "android_version": {"type": "string", "minLength": 1},
+        "ram_mb": {"type": "integer", "minimum": 256},
+        "battery_percent_start": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "battery_percent_end": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "temperature_c_start": {"type": ["number", "null"]},
+        "temperature_c_end": {"type": ["number", "null"]}
+      }
+    },
+    "model": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["candidate_id", "artifact_name", "checksum_sha256", "precision"],
+      "properties": {
+        "candidate_id": {"type": "string", "minLength": 1},
+        "artifact_name": {"type": "string", "minLength": 1},
+        "checksum_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "precision": {"type": "string", "minLength": 1},
+        "size_bytes": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "runtime_configuration": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["runtime", "threads"],
+      "properties": {
+        "runtime": {"type": "string", "minLength": 1},
+        "runtime_version": {"type": "string"},
+        "threads": {"type": "integer", "minimum": 1}
+      }
+    },
+    "language": {"type": "string", "enum": ["hi", "gu", "mr", "kn", "ml", "ta", "te", "or", "bn", "en"]},
+    "audio_fixture_or_dataset_reference": {"type": ["string", "null"]},
+    "network_topology_and_seed": {"type": ["object", "null"], "additionalProperties": true},
+    "thermal_and_power_conditions": {"type": ["object", "null"], "additionalProperties": true},
+    "result": {"type": "string", "enum": ["pass", "fail", "blocked", "invalid"]},
+    "raw_stage_metrics": {"type": "object", "additionalProperties": {"type": ["number", "integer", "string", "boolean", "null"]}},
+    "derived_metrics": {"type": "object", "additionalProperties": {"type": ["number", "integer", "string", "boolean", "null"]}},
+    "failure_reason": {"type": ["string", "null"]},
+    "notes": {"type": "string"}
+  }
+}
