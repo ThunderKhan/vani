@@ -33,10 +33,28 @@ Speech
 | Networking | `docs/NETWORKING.md`, `docs/ROUTING_RESEARCH.md`, `docs/TRANSPORT_ADAPTERS.md` |
 | Safety/Security | `docs/CRITICAL_INFORMATION_SAFETY.md`, `docs/SECURITY.md`, `docs/PRIVACY.md`, `docs/THREAT_MODEL.md` |
 | Research | `docs/RESEARCH.md`, `docs/EVALUATION.md`, `docs/EXPERIMENTS.md`, `docs/PUBLICATION_PLAN.md` |
-| Execution | `docs/ROADMAP.md`, `docs/MILESTONES.md`, `docs/TASK_BREAKDOWN.md`, `docs/RISK_REGISTER.md` |
+| Execution | **`docs/ROADMAP.md` (canonical M0–M6 roadmap)**, `docs/MILESTONES.md` (quick reference), `docs/TASK_BREAKDOWN.md`, `docs/RISK_REGISTER.md` |
 | Validation | `docs/TEST_PLAN.md`, `docs/BENCHMARK_PLAN.md`, `docs/DEFINITION_OF_DONE.md` |
 | Competition | `docs/DEMO.md`, `docs/JUDGE_QA.md`, `docs/PITCH.md` |
 | Governance | `docs/CONTRIBUTING.md`, `docs/DECISION_LOG.md`, `docs/LICENSING.md` |
+
+## Roadmap convention
+
+Implementation follows exactly one sequential engineering roadmap:
+
+```text
+M0 Truth and Feasibility
+ -> M1 Minimum Complete Offline Loop
+ -> M2 Ten-Language Credibility
+ -> M3 Safety-Aware Messaging
+ -> M4 Resilient Semantic Delivery
+ -> M5 Scientific Evidence
+ -> M6 Competition-Ready Product
+```
+
+Older `Phase 0`–`Phase 6` wording refers to the same M0–M6 sequence and should not be treated as a separate roadmap.
+
+`Tier 1`, `Tier 2`, and `Tier 3` describe **product/research maturity**, not implementation order. See `docs/ROADMAP.md` for the authoritative mapping and exit gates.
 
 ## Non-negotiable principles
 
