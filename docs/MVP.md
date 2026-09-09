@@ -1,5 +1,23 @@
 # MVP Specification
 
+## Relationship to the roadmap
+
+This document defines **Tier 1 — Credible MVP** product scope. It is not an alternate milestone sequence.
+
+The canonical implementation order is defined in [`ROADMAP.md`](./ROADMAP.md):
+
+```text
+M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6
+```
+
+For VĀṆI, Tier 1 MVP is reached only after **M0, M1, and M2** are complete:
+
+- **M0** proves feasibility, licences, and first real-device offline operation;
+- **M1** proves the complete two-phone offline communication loop;
+- **M2** proves credible support for all ten required languages.
+
+Advanced multi-hop routing, store-carry-forward research, and publication-grade evaluation are later milestones and are not required to call the direct ten-language product thesis a credible MVP.
+
 ## MVP definition
 
 For this project, MVP means **minimum credible end-to-end system**, not a toy demo.
@@ -95,5 +113,7 @@ The demo remains defensible when:
 Each case must produce a truthful UI state.
 
 ## MVP exit gate
+
+Tier 1 MVP is complete only when the roadmap exit gates for **M0, M1, and M2** have passed in addition to the acceptance criteria in this document.
 
 No multi-hop, adaptive routing, publication claim, or hardware extension should distract from the project until this complete path is stable.
