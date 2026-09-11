@@ -1,0 +1,32 @@
+{
+  "experiment_id": "M0-TTS-ANDROID-001",
+  "status": "not_run",
+  "purpose": "Measure first Android TTS path and whether its selected voice declares a network requirement.",
+  "device": {
+    "manufacturer": "",
+    "model": "",
+    "android_api": 0,
+    "ram_mb": 0
+  },
+  "software": {
+    "git_commit": "",
+    "probe_version": "0.0.1-m0"
+  },
+  "speech": {
+    "locale": "hi-IN",
+    "engine": "",
+    "voice": "",
+    "network_connection_required": null,
+    "offline_condition": "",
+    "offline_proof": "not_established"
+  },
+  "measurements": {
+    "cold_elapsed_ms": null,
+    "warm_elapsed_ms": null,
+    "peak_rss_mb": null,
+    "voice_or_model_footprint_mb": null,
+    "synthesis_succeeded": false,
+    "error_code": null
+  },
+  "notes": "A voice reporting networkConnectionRequired=true cannot be treated as an offline TTS pass. Record engine/voice identifiers exactly as observed on the test device."
+}
