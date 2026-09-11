@@ -35,6 +35,16 @@ PTT / on-device ASR
 | M0 access | M1 UI can launch the standalone M0 feasibility probe |
 | CI | Android build/test workflow runs on every Android source/configuration push |
 
+## Measurement semantics
+
+`M1Transport.SendResult.endToEndMillis` measures the sender's elapsed time from connection/send start until the receiver's ACK arrives. Because the receiver sends its ACK after the TTS operation, this value is an **end-to-end delivery/ACK latency**, not a pure network transport latency.
+
+`ttsFirstAudioMillis` is measured inside the receiver's TTS operation from TTS initialization until the first-audio callback. It should not be interpreted as end-to-end speech latency by itself.
+
+## Carried semantic metadata
+
+The current M1 message also serializes `priority`, `expiresAfterMillis`, and `ackPolicy` so the bundle has explicit semantic metadata. M1 validates these fields, but does not yet enforce expiry or implement multiple ACK policies. Those behaviors belong to later delivery/safety milestones and are not claimed as implemented by M1.
+
 ## Boundary
 
 M1 intentionally does not implement mesh routing, relay/store-and-forward, fragmentation, production cryptography, critical-information safety policy, or the final ten-language model packs. Those are later milestones and should not be pulled into the M1 proof prematurely.
