@@ -6,11 +6,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
+import android.speech.SpeechRecognizer
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Locale
@@ -21,6 +20,8 @@ class MainActivity : Activity() {
     private val executor: ExecutorService = Executors.newCachedThreadPool()
     private var server: ProbeServer? = null
     private var lastEvidence: String? = null
+    private var asr: SpeechRecognizer? = null
+    private var session = M1Session()
 
     private lateinit var offlineStatus: TextView
     private lateinit var localAddresses: TextView
@@ -36,6 +37,8 @@ class MainActivity : Activity() {
     private lateinit var speechLocaleInput: EditText
     private lateinit var ttsLocaleInput: EditText
     private lateinit var ttsTextInput: EditText
+    private lateinit var m1State: TextView
+    private lateinit var transcriptText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +46,6 @@ class MainActivity : Activity() {
         bindViews()
         renderNetworkState()
         addSpeechProbeSection()
-
         findViewById<Button>(R.id.refreshOfflineButton).setOnClickListener { renderNetworkState() }
         hostButton.setOnClickListener { toggleHost() }
         sendButton.setOnClickListener { sendPayload() }
@@ -51,6 +53,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        asr?.destroy()
         server?.stop()
         executor.shutdownNow()
         super.onDestroy()
@@ -67,190 +70,90 @@ class MainActivity : Activity() {
         sendStatus = findViewById(R.id.sendStatus)
         copyEvidenceButton = findViewById(R.id.copyEvidenceButton)
         evidenceText = findViewById(R.id.evidenceText)
+        speechStatus = findViewById(R.id.speechStatus)
+        speechLocaleInput = findViewById(R.id.speechLocale)
+        ttsLocaleInput = findViewById(R.id.ttsLocale)
+        ttsTextInput = findViewById(R.id.ttsText)
+        m1State = findViewById(R.id.m1State)
+        transcriptText = findViewById(R.id.transcriptText)
     }
 
     private fun renderNetworkState() {
         val state = DeviceState.offlineSnapshot(this)
+        offlineStatus.text = "Airplane mode: ${state.airplaneMode}\nValidated Internet: ${state.validatedInternetAvailable}\nInternet capability: ${state.internetCapabilityDeclared}\nActive transports: ${state.localRadios.ifEmpty { listOf("none") }.joinToString()}"
         val addresses = LocalAddressProvider.ipv4Addresses()
-        offlineStatus.text = buildString {
-            append("Airplane mode: ${state.airplaneMode}\n")
-            append("Validated Internet available: ${state.validatedInternetAvailable}\n")
-            append("Network declares Internet capability: ${state.internetCapabilityDeclared}\n")
-            append("Active transports: ${state.localRadios.ifEmpty { listOf("none detected") }.joinToString()}")
-        }
-        localAddresses.text = if (addresses.isEmpty()) {
-            "No non-loopback IPv4 address detected. Connect/re-enable local Wi-Fi, then refresh."
-        } else {
-            "Candidate receiver IPv4 addresses:\n${addresses.joinToString(separator = "\n")}"
-        }
+        localAddresses.text = if (addresses.isEmpty()) "No non-loopback IPv4 address detected." else "Candidate receiver IPv4 addresses:\n${addresses.joinToString("\n")}"
     }
 
     private fun toggleHost() {
-        val current = server
-        if (current?.isRunning() == true) {
-            current.stop()
-            server = null
-            hostButton.text = "Start host on port $PORT"
-            hostStatus.text = "Host stopped"
-            return
+        if (server?.isRunning() == true) {
+            server?.stop(); server = null; hostButton.text = "Start receiver on port 42424"; hostStatus.text = "Receiver stopped"; return
         }
-
-        val newServer = ProbeServer(
-            port = PORT,
-            responderInfo = DeviceState.deviceInfoString(this),
-            onReceived = { receive ->
-                val record = ExperimentEvidence.buildReceiverRecord(this, receive)
+        val newServer = ProbeServer(PORT, DeviceState.deviceInfoString(this), { receive ->
+            try {
+                val bundle = SemanticBundle.decodeUtf8(receive.payload)
+                val duplicate = getPreferences(MODE_PRIVATE).getBoolean("seen_${bundle.messageId}", false)
+                if (!duplicate) getPreferences(MODE_PRIVATE).edit().putBoolean("seen_${bundle.messageId}", true).apply()
                 runOnUiThread {
-                    hostStatus.text = "Received ${receive.payload.size} bytes; SHA-256 verified; ACK returned."
-                    showEvidence(record)
-                    renderNetworkState()
+                    m1State.text = if (duplicate) "M1 state: DELIVERED · duplicate suppressed" else "M1 state: DELIVERED"
+                    transcriptText.text = "Transcript: ${bundle.transcript}"
+                    hostStatus.text = if (duplicate) "Duplicate ${bundle.messageId} suppressed; ACK returned." else "Bundle ${bundle.messageId} decoded; SHA-256 verified; ACK returned."
+                    showEvidence(ExperimentEvidence.buildReceiverRecord(this, receive))
                 }
-            },
-            onError = { error ->
-                runOnUiThread {
-                    hostStatus.text = "Host error: ${error.message ?: error::class.java.simpleName}"
-                    hostButton.text = "Start host on port $PORT"
-                    server = null
-                }
-            },
-        )
+            } catch (e: Throwable) {
+                runOnUiThread { hostStatus.text = "Invalid semantic bundle: ${e.message}" }
+            }
+        }, { error -> runOnUiThread { hostStatus.text = "Receiver error: ${error.message ?: error::class.java.simpleName}" } })
         server = newServer
         newServer.start(executor)
-        hostButton.text = "Stop host"
-        hostStatus.text = "Listening on TCP port $PORT. Keep this screen open during M0 testing."
-        renderNetworkState()
+        hostButton.text = "Stop receiver"
+        hostStatus.text = "Listening on TCP port $PORT"
     }
 
     private fun sendPayload() {
         val host = hostInput.text.toString().trim()
-        if (host.isBlank()) {
-            hostInput.error = "Enter the receiver IPv4 address"
-            return
-        }
-        val payload = payloadInput.text.toString().toByteArray(Charsets.UTF_8)
-        if (payload.isEmpty()) {
-            payloadInput.error = "Enter a UTF-8 test payload"
-            return
-        }
-        if (payload.size > LinkProtocol.MAX_PAYLOAD_BYTES) {
-            payloadInput.error = "Payload is ${payload.size} bytes; maximum is ${LinkProtocol.MAX_PAYLOAD_BYTES}"
-            return
-        }
-
-        val run = ExperimentEvidence.begin(this)
-        val senderInfo = run.startDevice.shortLabel()
+        if (host.isBlank()) { hostInput.error = "Enter receiver IPv4"; return }
+        val raw = payloadInput.text.toString().toByteArray(Charsets.UTF_8)
+        if (raw.isEmpty() || raw.size > LinkProtocol.MAX_PAYLOAD_BYTES) { payloadInput.error = "Payload must be 1..${LinkProtocol.MAX_PAYLOAD_BYTES} bytes"; return }
         sendButton.isEnabled = false
-        sendStatus.text = "Connecting to $host:$PORT …"
         executor.execute {
-            var sendResult: ProbeClient.SendResult? = null
-            var failure: Throwable? = null
             try {
-                sendResult = ProbeClient.send(host, PORT, senderInfo, payload)
-            } catch (t: Throwable) {
-                failure = t
-            }
-            val evidence = ExperimentEvidence.buildSenderRecord(
-                run = run,
-                endOffline = DeviceState.offlineSnapshot(this),
-                endDevice = DeviceState.deviceSnapshot(this),
-                host = host,
-                port = PORT,
-                sendResult = sendResult,
-                error = failure,
-            )
-            runOnUiThread {
-                sendButton.isEnabled = true
-                sendStatus.text = when {
-                    failure != null -> "Transfer failed: ${failure.message ?: failure::class.java.simpleName}"
-                    sendResult != null -> String.format(
-                        Locale.US,
-                        "ACK=%s · integrity=%s · %d bytes · RTT %.2f ms",
-                        sendResult!!.receiverAccepted,
-                        sendResult!!.integrityMatched,
-                        sendResult!!.payloadBytes,
-                        sendResult!!.roundTripMillis,
-                    )
-                    else -> "No transfer result"
+                val result = ProbeClient.send(host, PORT, DeviceState.deviceInfoString(this), raw)
+                runOnUiThread {
+                    sendButton.isEnabled = true
+                    sendStatus.text = String.format(Locale.US, "ACK=%s · integrity=%s · %d bytes · RTT %.2f ms", result.receiverAccepted, result.integrityMatched, result.payloadBytes, result.roundTripMillis)
+                    m1State.text = if (result.receiverAccepted && result.integrityMatched) "M1 state: ACKNOWLEDGED" else "M1 state: FAILED"
                 }
-                showEvidence(evidence)
-                renderNetworkState()
+            } catch (e: Throwable) {
+                runOnUiThread { sendButton.isEnabled = true; sendStatus.text = "Transfer failed: ${e.message}"; m1State.text = "M1 state: FAILED" }
             }
         }
     }
 
     private fun addSpeechProbeSection() {
-        val scroll = findViewById<ViewGroup>(android.R.id.content)
-        val root = scroll.getChildAt(0) as? ViewGroup ?: return
-        val section = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, 18, 0, 0)
-        }
-
-        fun title(text: String) = TextView(this).apply {
-            this.text = text
-            textSize = 18f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(0, 18, 0, 8)
-        }
-        fun edit(hint: String, value: String, multiLine: Boolean = false) = EditText(this).apply {
-            this.hint = hint
-            setText(value)
-            if (multiLine) minLines = 3
-            layoutParams = LinearLayout.LayoutParams(-1, -2)
-        }
-
-        speechStatus = TextView(this)
-        speechLocaleInput = edit("ASR locale", "hi-IN")
-        ttsLocaleInput = edit("TTS locale", "hi-IN")
-        ttsTextInput = edit("TTS text", "नमस्ते, यह ऑफ़लाइन वाणी परीक्षण है।", true)
-
-        section.addView(title("Speech feasibility probe"))
-        section.addView(TextView(this).apply {
-            text = "Platform-only M0 probe. On-device ASR is used when Android exposes it; TTS reports whether the selected voice requires a network. These results are evidence, not a ten-language product claim."
-        })
-        section.addView(speechStatus)
-        section.addView(speechLocaleInput)
-        section.addView(Button(this).apply {
-            text = "Probe on-device ASR"
-            setOnClickListener { runAsrProbe() }
-        })
-        section.addView(ttsLocaleInput)
-        section.addView(ttsTextInput)
-        section.addView(Button(this).apply {
-            text = "Probe TTS voice + synthesize"
-            setOnClickListener { runTtsProbe() }
-        })
-
-        root.addView(section)
-        refreshSpeechCapability()
-    }
-
-    private fun refreshSpeechCapability() {
-        speechStatus.text = buildString {
-            append("ASR recognition service: ${android.speech.SpeechRecognizer.isRecognitionAvailable(this@MainActivity)}\n")
-            append("On-device ASR API capability: ${SpeechProbe.onDeviceRecognizerAvailable(this@MainActivity)}\n")
-            append("Note: EXTRA_PREFER_OFFLINE alone is not proof of offline execution.")
-        }
+        speechStatus.text = "ASR recognition available: ${SpeechRecognizer.isRecognitionAvailable(this)}\nOn-device ASR API: ${SpeechProbe.onDeviceRecognizerAvailable(this)}\nEXTRA_PREFER_OFFLINE is not treated as proof."
+        findViewById<Button>(R.id.asrButton).setOnClickListener { runAsrProbe() }
+        findViewById<Button>(R.id.ttsButton).setOnClickListener { runTtsProbe() }
     }
 
     private fun runAsrProbe() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_AUDIO)
-            speechStatus.text = "Microphone permission requested. Press the ASR probe again after granting it."
-            return
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_AUDIO); return
         }
         val locale = speechLocaleInput.text.toString().trim().ifBlank { "hi-IN" }
-        speechStatus.text = "Listening for $locale … speak a short phrase."
-        SpeechProbe.runAsr(this, locale) { result ->
+        m1State.text = "M1 state: LISTENING"
+        speechStatus.text = "Listening for $locale … release/stop when the phrase ends."
+        asr?.destroy()
+        asr = SpeechProbe.runAsr(this, locale) { result ->
             runOnUiThread {
-                speechStatus.text = buildString {
-                    append("ASR locale: ${result.locale}\n")
-                    append("On-device API available: ${result.onDeviceApiAvailable}\n")
-                    append("Recognizer available: ${result.recognizerAvailable}\n")
-                    append("Succeeded: ${result.succeeded}\n")
-                    append("Elapsed: ${result.elapsedMillis} ms\n")
-                    append("Transcript: ${result.transcript ?: "—"}\n")
-                    append("Error: ${result.errorMessage ?: "—"}")
+                if (result.succeeded && !result.transcript.isNullOrBlank()) {
+                    transcriptText.text = "Transcript (editable above only before production send): ${result.transcript}"
+                    speechStatus.text = "ASR ${result.locale}: ${result.transcript}\nOn-device API: ${result.onDeviceApiAvailable}\nElapsed: ${result.elapsedMillis} ms"
+                    m1State.text = "M1 state: TRANSCRIPT_READY"
+                    payloadInput.setText(result.transcript)
+                } else {
+                    speechStatus.text = "ASR failed: ${result.errorMessage ?: "no transcript"}"
+                    m1State.text = "M1 state: FAILED"
                 }
             }
         }
@@ -258,46 +161,20 @@ class MainActivity : Activity() {
 
     private fun runTtsProbe() {
         val locale = ttsLocaleInput.text.toString().trim().ifBlank { "hi-IN" }
-        val text = ttsTextInput.text.toString().ifBlank { "VANI offline speech test" }
+        val text = ttsTextInput.text.toString().ifBlank { transcriptText.text.toString().removePrefix("Transcript: ") }
         speechStatus.text = "Initializing TTS for $locale …"
         SpeechProbe.runTts(this, locale, text) { result ->
-            runOnUiThread {
-                speechStatus.text = buildString {
-                    append("TTS locale: ${result.locale}\n")
-                    append("Engine: ${result.engine ?: "—"}\n")
-                    append("Voice: ${result.voiceName ?: "—"}\n")
-                    append("Language supported: ${result.languageSupported}\n")
-                    append("Voice requires network: ${result.networkConnectionRequired ?: "unknown"}\n")
-                    append("Synthesis succeeded: ${result.succeeded}\n")
-                    append("Elapsed: ${result.elapsedMillis} ms\n")
-                    append("Error: ${result.errorMessage ?: "—"}")
-                }
-            }
+            runOnUiThread { speechStatus.text = "TTS ${result.locale}\nEngine: ${result.engine ?: "—"}\nVoice: ${result.voiceName ?: "—"}\nLanguage supported: ${result.languageSupported}\nVoice requires network: ${result.networkConnectionRequired ?: "unknown"}\nSynthesis: ${result.succeeded}\nElapsed: ${result.elapsedMillis} ms" }
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Microphone permission granted", Toast.LENGTH_SHORT).show()
-        }
+        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) Toast.makeText(this, "Microphone permission granted; run ASR again.", Toast.LENGTH_SHORT).show()
     }
 
-    private fun showEvidence(evidence: String) {
-        lastEvidence = evidence
-        evidenceText.text = evidence
-        copyEvidenceButton.isEnabled = true
-    }
+    private fun showEvidence(evidence: String) { lastEvidence = evidence; evidenceText.text = evidence; copyEvidenceButton.isEnabled = true }
+    private fun copyEvidence() { lastEvidence?.let { getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("VANI evidence", it)); Toast.makeText(this, "Evidence copied", Toast.LENGTH_SHORT).show() } }
 
-    private fun copyEvidence() {
-        val evidence = lastEvidence ?: return
-        getSystemService(ClipboardManager::class.java)
-            .setPrimaryClip(ClipData.newPlainText("VANI M0 evidence", evidence))
-        Toast.makeText(this, "Evidence JSON copied", Toast.LENGTH_SHORT).show()
-    }
-
-    companion object {
-        private const val PORT = 42_424
-        private const val REQUEST_AUDIO = 1001
-    }
+    companion object { private const val PORT = 42_424; private const val REQUEST_AUDIO = 1001 }
 }
