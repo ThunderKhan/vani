@@ -3,6 +3,9 @@ package dev.syntax6.vani.m0probe
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 object LinkProtocol {
@@ -142,7 +145,7 @@ object LinkProtocol {
         bytes.joinToString(separator = "") { "%02x".format(it) }
 
     private fun writeUtf8(output: DataOutputStream, value: String, maxBytes: Int) {
-        val bytes = value.toByteArray(Charsets.UTF_8)
+        val bytes = value.toByteArray(StandardCharsets.UTF_8)
         require(bytes.size <= maxBytes) { "UTF-8 field exceeds $maxBytes bytes" }
         output.writeInt(bytes.size)
         output.write(bytes)
@@ -153,7 +156,15 @@ object LinkProtocol {
         if (length !in 0..maxBytes) throw ProtocolException("Invalid UTF-8 field length: $length")
         val bytes = ByteArray(length)
         input.readFully(bytes)
-        return bytes.toString(Charsets.UTF_8)
+        return try {
+            StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes))
+                .toString()
+        } catch (error: java.nio.charset.CharacterCodingException) {
+            throw ProtocolException("Invalid UTF-8 field")
+        }
     }
 }
 
