@@ -23,7 +23,12 @@ object M1Speech {
             callback(AsrResult(null, 0, false, "No Android on-device recognizer available for M1"))
             return null
         }
-        val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        val recognizer = try {
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        } catch (error: RuntimeException) {
+            callback(AsrResult(null, 0, false, "Unable to create on-device recognizer: ${error.message ?: error::class.java.simpleName}"))
+            return null
+        }
         val started = SystemClock.elapsedRealtime()
         val finished = AtomicBoolean(false)
         var endpointed = false
@@ -47,12 +52,17 @@ object M1Speech {
             }
             override fun onError(error: Int) = finish(AsrResult(null, SystemClock.elapsedRealtime() - started, endpointed, "Recognizer error $error"))
         })
-        recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.forLanguageTag(localeTag).toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeTag)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-        })
+        try {
+            recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.forLanguageTag(localeTag).toLanguageTag())
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeTag)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            })
+        } catch (error: RuntimeException) {
+            finish(AsrResult(null, SystemClock.elapsedRealtime() - started, endpointed, "Unable to start on-device recognizer: ${error.message ?: error::class.java.simpleName}"))
+            return null
+        }
         return recognizer
     }
 
@@ -88,7 +98,16 @@ object M1Speech {
                     if (id == utteranceId) { callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS synthesis failed")); tts.shutdown() }
                 }
             })
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            try {
+                val result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+                if (result != TextToSpeech.SUCCESS) {
+                    callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() rejected the utterance"))
+                    tts.shutdown()
+                }
+            } catch (error: RuntimeException) {
+                callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() failed: ${error.message ?: error::class.java.simpleName}"))
+                tts.shutdown()
+            }
         }
         return ttsRef
     }
