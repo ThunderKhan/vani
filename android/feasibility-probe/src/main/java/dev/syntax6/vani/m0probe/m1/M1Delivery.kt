@@ -11,6 +11,11 @@ data class M1Message(
     val languageTag: String,
     val text: String,
     val createdElapsedNanos: Long,
+    val source: String = "android",
+    val destination: String = "direct-peer",
+    val priority: Int = 0,
+    val expiresAfterMillis: Long = 60_000L,
+    val ackPolicy: String = "playback",
 )
 
 class M1DeliveryStore(context: Context) {
