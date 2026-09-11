@@ -3,10 +3,11 @@
     <!-- Raw local TCP sockets use Android's INTERNET permission even when no Internet route exists. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="false"
-        android:label="VĀṆI M0 Link Probe"
+        android:label="VĀṆI M0 Speech + Link Probe"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
