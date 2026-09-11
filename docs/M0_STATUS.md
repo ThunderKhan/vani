@@ -1,38 +1,37 @@
 # M0 — Truth and Feasibility Status
 
 **Milestone state:** `IN PROGRESS`  
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-12
 
-M0 is an evidence gate. Repository contracts or Android CI passing do **not** mean the milestone is complete.
+M0 is an evidence gate. Repository contracts, CI, or a successful API call do **not** mean the milestone is complete.
 
 ## Gate status
 
 | Gate | Status | Evidence / next action |
 |---|---|---|
 | Working requirement ledger + open questions | READY / official artifact link still open | `docs/M0_REQUIREMENTS.md` |
-| Exact ten-language candidate STT/TTS inventory | READY as a candidate inventory | `models/manifests/m0_candidates.json`; run `python tools/m0_validate.py` |
+| Exact ten-language candidate STT/TTS inventory | READY as a candidate inventory | `models/manifests/m0_candidates.json` |
 | Licence/provenance audit | IN PROGRESS | Several candidates remain `review_required`; exact selected artifacts/checksums are not frozen |
-| Offline ASR on real low/mid Android | OPEN | Run `M0-ASR-ANDROID-001`; do not substitute emulator/desktop timing |
-| Offline TTS on real low/mid Android | OPEN | Run `M0-TTS-ANDROID-001` |
-| Two-phone Unicode transfer with internet unavailable | **PROBE IMPLEMENTED / PHYSICAL RUN OPEN** | `android/feasibility-probe`; execute `M0-UNICODE-LINK-001` on two physical phones and commit the resulting evidence JSON |
-| Cold/warm latency + model footprint + memory observations | OPEN | Record in experiment JSON from the actual speech-device runs |
+| Offline ASR on real low/mid Android | OPEN / probe implemented | `M0-ASR-ANDROID-001`; `SpeechProbe` uses Android on-device recognition when the OS exposes it and records capability/results |
+| Offline TTS on real low/mid Android | OPEN / probe implemented | `M0-TTS-ANDROID-001`; `SpeechProbe` records engine/voice and `networkConnectionRequired` |
+| Two-phone Unicode transfer with internet unavailable | PROBE IMPLEMENTED / PHYSICAL RUN OPEN | `android/feasibility-probe`; execute `M0-UNICODE-LINK-001` |
+| Cold/warm latency + model footprint + memory observations | OPEN / recording contracts implemented | `experiments/m0/asr-device-run.template.json`, `experiments/m0/tts-device-run.template.json` |
 | Experiment/result metadata contract | READY | `experiments/schema/experiment-record.schema.json` |
-| Initial risk register | READY, updated for current M0 blocker | `docs/RISK_REGISTER.md` |
+| Initial risk register | READY | `docs/RISK_REGISTER.md` |
 
-## Implemented M0 transport probe
+## Implemented M0 speech probe
 
-`android/feasibility-probe` is a disposable native Android instrument for the direct Unicode-transfer gate. It:
-- hosts a bounded local TCP receiver on port 42424;
-- sends arbitrary UTF-8 payloads, including the ten-script fixture;
-- rejects payloads above 64 KiB before serialization/allocation;
-- verifies SHA-256 before accepting received bytes;
-- returns an explicit acknowledgement containing payload hash/length;
-- records sender-side monotonic round-trip timing;
-- records airplane-mode and `NET_CAPABILITY_VALIDATED` state;
-- records device/RAM/battery observations and the Git commit embedded at build time;
-- marks an otherwise successful transfer `blocked` rather than `pass` if validated Internet is present or the build commit is unknown.
+The Android feasibility probe now contains a platform speech instrumentation layer in addition to the Unicode link test. It:
+- checks whether any Android recognition service exists;
+- checks API 31+ on-device recognizer availability;
+- prefers the on-device recognizer when Android exposes one;
+- records recognition elapsed time and transcript/error state;
+- requests microphone permission only when ASR is invoked;
+- initializes Android TextToSpeech for a requested locale;
+- records the selected engine, voice, language support, and `networkConnectionRequired` flag;
+- synthesizes a short utterance so the runtime path is exercised rather than merely enumerated.
 
-This probe is not the production protocol and deliberately makes no mesh, security, STT, or TTS claim.
+The probe deliberately does **not** turn `EXTRA_PREFER_OFFLINE`, a successful TTS call, or an available voice into an offline claim. Actual offline evidence still requires controlled physical-device execution.
 
 ## Candidate coverage finding
 
@@ -45,14 +44,12 @@ It does not prove:
 - that accuracy is acceptable per language;
 - that the project can ship all ten language packs within a practical footprint.
 
-One important negative result is preserved explicitly: Whisper is a useful baseline for several required languages but is not counted as the all-ten solution because the current language table does not include Odia/Oriya.
+Whisper remains a useful baseline for several required languages but is not counted as the all-ten solution because the current language table does not include Odia/Oriya.
 
-## Next highest-risk assumption
+## Current implementation boundary
 
-> **Can Syntax6 produce at least one legally distributable, genuinely offline Android STT+TTS path on modest hardware without creating an impractical language-pack/storage architecture?**
-
-The transport probe should be physically executed as soon as two phones are available, but implementation attention can now move in parallel to the first Android speech-runtime probe. The first speech probe should optimize for learning, not final model quality, and must record real latency/RAM/footprint without being mislabeled as ten-language completion.
+The M0 probe is intentionally disposable. It is a measurement instrument, not the production VĀṆI UI and not the final mesh/security protocol. The next production milestone should reuse only interfaces and evidence-backed components rather than copying probe assumptions wholesale.
 
 ## M0 exit declaration
 
-**NOT COMPLETE.** Physical Unicode-link evidence plus real-device offline ASR/TTS evidence are still required.
+**NOT COMPLETE.** Physical Unicode-link evidence plus real-device offline ASR/TTS evidence and the corresponding licence/provenance freeze are still required.
