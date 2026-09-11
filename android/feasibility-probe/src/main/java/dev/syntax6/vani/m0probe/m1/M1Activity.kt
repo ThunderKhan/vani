@@ -2,11 +2,11 @@ package dev.syntax6.vani.m0probe.m1
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
-import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
@@ -14,6 +14,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import dev.syntax6.vani.m0probe.MainActivity
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
@@ -61,6 +62,9 @@ class M1Activity : Activity() {
         networkStatus = text("").apply { setPadding(0, 16, 0, 8) }
         root.addView(networkStatus)
         root.addView(button("Refresh network state").apply { setOnClickListener { refreshNetworkStatus() } })
+        root.addView(button("Open M0 feasibility probe").apply {
+            setOnClickListener { startActivity(Intent(this@M1Activity, MainActivity::class.java)) }
+        })
 
         stateText = text("State: IDLE").apply { setPadding(0, 12, 0, 8) }
         root.addView(stateText)
@@ -116,17 +120,24 @@ class M1Activity : Activity() {
                     transcript.setSelection(transcript.length())
                     sendButton.isEnabled = true
                     stateText.text = "State: TRANSCRIPT_READY · endpoint=${result.endpointed}"
-                } else stateText.text = "State: ASR_FAILED · ${result.error ?: "unknown error"}"
+                } else {
+                    stateText.text = "State: ASR_FAILED · ${result.error ?: "unknown error"}"
+                }
                 metrics.text = "ASR=${result.elapsedMillis} ms · endpointed=${result.endpointed}"
             }
         }
     }
 
-    private fun stopPtt() { runCatching { recognizer?.stopListening() } }
+    private fun stopPtt() {
+        runCatching { recognizer?.stopListening() }
+    }
 
     private fun toggleHost() {
         if (server?.isRunning() == true) {
-            server?.stop(); server = null; hostButton.text = "Start receiver on TCP ${M1Transport.PORT}"; return
+            server?.stop()
+            server = null
+            hostButton.text = "Start receiver on TCP ${M1Transport.PORT}"
+            return
         }
         server = M1Transport.Server { message, bytes -> receiveMessage(message, bytes) }
         server!!.start(executor)
@@ -172,7 +183,13 @@ class M1Activity : Activity() {
             return
         }
 
-        val message = M1Message(languageTag = locale, text = text, createdElapsedNanos = System.nanoTime(), source = "android-direct", destination = host)
+        val message = M1Message(
+            languageTag = locale,
+            text = text,
+            createdElapsedNanos = System.nanoTime(),
+            source = "android-direct",
+            destination = host,
+        )
         val bundle = M1Bundle.encode(message)
         store.setState(message.id, M1DeliveryState.QUEUED)
         stateText.text = "State: QUEUED · ${message.id}"
@@ -182,8 +199,12 @@ class M1Activity : Activity() {
             var error: Throwable? = null
             repeat(2) { attempt ->
                 if (result != null) return@repeat
-                try { result = M1Transport.send(host, bundle, message.id) }
-                catch (t: Throwable) { error = t; if (attempt == 0) Thread.sleep(250) }
+                try {
+                    result = M1Transport.send(host, bundle, message.id)
+                } catch (t: Throwable) {
+                    error = t
+                    if (attempt == 0) Thread.sleep(250)
+                }
             }
             val finalResult = result
             runOnUiThread {
@@ -193,11 +214,20 @@ class M1Activity : Activity() {
                 if (finalResult?.acknowledged == true && finalResult.delivered) {
                     store.setState(message.id, M1DeliveryState.ACKNOWLEDGED)
                     stateText.text = "State: ACKNOWLEDGED · ${message.id}"
-                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, finalResult.transportMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
+                    metrics.text = String.format(
+                        Locale.US,
+                        "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry",
+                        message.id,
+                        finalResult.bundleBytes,
+                        finalResult.transportMillis,
+                        finalResult.ttsFirstAudioMillis ?: "n/a",
+                        finalResult.endToEndMillis,
+                        finalResult.duplicate,
+                    )
                 } else {
                     store.setState(message.id, M1DeliveryState.FAILED)
                     stateText.text = "State: FAILED · peer/ACK unavailable"
-                    metrics.text = "Failure: ${error?.message ?: "receiver rejected delivery"}"
+                    metrics.text = "Failure: ${error?.message ?: finalResult?.error ?: "receiver rejected delivery"}"
                 }
             }
         }
@@ -211,8 +241,9 @@ class M1Activity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Microphone permission granted; hold PTT again", Toast.LENGTH_SHORT).show()
+        }
     }
 
     companion object { private const val REQUEST_AUDIO = 1101 }
