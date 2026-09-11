@@ -26,6 +26,7 @@ object M1Speech {
         val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         val started = SystemClock.elapsedRealtime()
         val finished = AtomicBoolean(false)
+        var endpointed = false
         fun finish(result: AsrResult) {
             if (finished.compareAndSet(false, true)) {
                 recognizer.destroy()
@@ -37,14 +38,14 @@ object M1Speech {
             override fun onBeginningOfSpeech() = Unit
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() = finish(AsrResult(null, SystemClock.elapsedRealtime() - started, true, "Endpoint reached; waiting for final result"))
+            override fun onEndOfSpeech() { endpointed = true }
             override fun onPartialResults(partialResults: Bundle?) = Unit
             override fun onEvent(eventType: Int, params: Bundle?) = Unit
             override fun onResults(results: Bundle?) {
                 val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                finish(AsrResult(text, SystemClock.elapsedRealtime() - started, true, if (text.isNullOrBlank()) "No transcript" else null))
+                finish(AsrResult(text, SystemClock.elapsedRealtime() - started, endpointed, if (text.isNullOrBlank()) "No transcript" else null))
             }
-            override fun onError(error: Int) = finish(AsrResult(null, SystemClock.elapsedRealtime() - started, false, "Recognizer error $error"))
+            override fun onError(error: Int) = finish(AsrResult(null, SystemClock.elapsedRealtime() - started, endpointed, "Recognizer error $error"))
         })
         recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.forLanguageTag(localeTag).toLanguageTag())
