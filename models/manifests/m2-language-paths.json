@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "milestone": "M2",
+  "status": "implementation_paths_defined_physical_verification_pending",
+  "policy": "A language is not considered verified from this manifest alone.",
+  "asr": {
+    "provider": "Android on-device SpeechRecognizer",
+    "offline_required": true,
+    "network_fallback": false,
+    "verification_status": "pending_per_device_and_locale"
+  },
+  "tts": {
+    "provider": "Android TextToSpeech local voice",
+    "offline_required": true,
+    "network_voice_rejected": true,
+    "verification_status": "pending_per_device_and_locale"
+  },
+  "languages": [
+    {"code":"hi","locale":"hi-IN","name":"Hindi","native_name":"हिन्दी"},
+    {"code":"gu","locale":"gu-IN","name":"Gujarati","native_name":"ગુજરાતી"},
+    {"code":"mr","locale":"mr-IN","name":"Marathi","native_name":"मराठी"},
+    {"code":"kn","locale":"kn-IN","name":"Kannada","native_name":"ಕನ್ನಡ"},
+    {"code":"ml","locale":"ml-IN","name":"Malayalam","native_name":"മലയാളം"},
+    {"code":"ta","locale":"ta-IN","name":"Tamil","native_name":"தமிழ்"},
+    {"code":"te","locale":"te-IN","name":"Telugu","native_name":"తెలుగు"},
+    {"code":"or","locale":"or-IN","name":"Odia","native_name":"ଓଡ଼ିଆ"},
+    {"code":"bn","locale":"bn-IN","name":"Bengali","native_name":"বাংলা"},
+    {"code":"en","locale":"en-IN","name":"English","native_name":"English"}
+  ]
+}
