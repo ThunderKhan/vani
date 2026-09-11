@@ -1,6 +1,10 @@
 package dev.syntax6.vani.m0probe.m1
 
 import org.json.JSONObject
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
@@ -11,11 +15,7 @@ object M1Bundle {
     data class Decoded(val message: M1Message, val sha256: String)
 
     fun encode(message: M1Message): ByteArray {
-        require(message.id.length <= 128) { "message id too long" }
-        require(message.languageTag.length <= 32) { "language tag too long" }
-        require(message.text.isNotBlank()) { "message text is empty" }
-        require(message.priority in 0..3) { "invalid priority" }
-        require(message.expiresAfterMillis in 1..86_400_000L) { "invalid expiry" }
+        validate(message)
         val json = JSONObject()
             .put("v", VERSION)
             .put("id", message.id)
@@ -35,26 +35,43 @@ object M1Bundle {
 
     fun decode(bytes: ByteArray): Decoded {
         require(bytes.size in 1..MAX_BYTES) { "invalid bundle size" }
-        val json = JSONObject(String(bytes, StandardCharsets.UTF_8))
+        val json = JSONObject(decodeUtf8(bytes))
         require(json.optInt("v", -1) == VERSION) { "unsupported bundle version" }
-        val id = json.optString("id", "")
-        val source = json.optString("source", "")
-        val destination = json.optString("destination", "")
-        val lang = json.optString("lang", "")
-        val text = json.optString("text", "")
-        val priority = json.optInt("priority", -1)
-        val created = json.optLong("created_elapsed_nanos", -1L)
-        val expiry = json.optLong("expires_after_ms", -1L)
-        val ackPolicy = json.optString("ack_policy", "")
-        require(id.isNotBlank() && id.length <= 128) { "invalid message id" }
-        require(source.length <= 128 && destination.length <= 128) { "invalid endpoint" }
-        require(lang.isNotBlank() && lang.length <= 32) { "invalid language tag" }
-        require(text.isNotBlank()) { "invalid message text" }
-        require(priority in 0..3) { "invalid priority" }
-        require(created >= 0L && expiry in 1..86_400_000L) { "invalid timing metadata" }
-        require(ackPolicy.length <= 32) { "invalid ACK policy" }
+
+        val message = M1Message(
+            id = json.optString("id", ""),
+            languageTag = json.optString("lang", ""),
+            text = json.optString("text", ""),
+            createdElapsedNanos = json.optLong("created_elapsed_nanos", -1L),
+            source = json.optString("source", ""),
+            destination = json.optString("destination", ""),
+            priority = json.optInt("priority", -1),
+            expiresAfterMillis = json.optLong("expires_after_ms", -1L),
+            ackPolicy = json.optString("ack_policy", ""),
+        )
+        validate(message)
         val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-        return Decoded(M1Message(id, lang, text, created, source, destination, priority, expiry, ackPolicy), digest.toHex())
+        return Decoded(message, digest.toHex())
+    }
+
+    private fun validate(message: M1Message) {
+        require(message.id.isNotBlank() && message.id.length <= 128) { "invalid message id" }
+        require(message.source.length <= 128 && message.destination.length <= 128) { "invalid endpoint" }
+        require(message.languageTag.matches(Regex("^[a-z]{2}(-[A-Z]{2})?$"))) { "invalid language tag" }
+        require(message.text.isNotBlank()) { "message text is empty" }
+        require(message.priority in 0..3) { "invalid priority" }
+        require(message.createdElapsedNanos >= 0L) { "invalid creation timestamp" }
+        require(message.expiresAfterMillis in 1..86_400_000L) { "invalid expiry" }
+        require(message.ackPolicy.length in 1..32) { "invalid ACK policy" }
+    }
+
+    private fun decodeUtf8(bytes: ByteArray): String = try {
+        val decoder = StandardCharsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+        decoder.decode(ByteBuffer.wrap(bytes)).toString()
+    } catch (error: CharacterCodingException) {
+        throw IllegalArgumentException("bundle is not valid UTF-8", error)
     }
 
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
