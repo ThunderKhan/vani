@@ -86,6 +86,17 @@ class LinkProtocolTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
+    fun emptyPayloadIsRejectedBeforeSerialization() {
+        val bytes = ByteArrayOutputStream()
+        LinkProtocol.writeDataFrame(
+            output = DataOutputStream(bytes),
+            senderElapsedNanos = 1L,
+            senderInfo = "sender",
+            payload = ByteArray(0),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun oversizedPayloadIsRejectedBeforeSerialization() {
         val bytes = ByteArrayOutputStream()
         LinkProtocol.writeDataFrame(
