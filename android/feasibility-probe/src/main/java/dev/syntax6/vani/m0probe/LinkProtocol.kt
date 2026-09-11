@@ -39,8 +39,8 @@ object LinkProtocol {
         senderInfo: String,
         payload: ByteArray,
     ) {
-        require(payload.size <= MAX_PAYLOAD_BYTES) {
-            "Payload exceeds $MAX_PAYLOAD_BYTES bytes"
+        require(payload.size in 1..MAX_PAYLOAD_BYTES) {
+            "Payload must be 1..$MAX_PAYLOAD_BYTES bytes"
         }
         val hash = sha256(payload)
         output.writeInt(DATA_MAGIC)
@@ -64,7 +64,7 @@ object LinkProtocol {
         val senderElapsedNanos = input.readLong()
         val senderInfo = readUtf8(input, MAX_DEVICE_INFO_BYTES)
         val payloadLength = input.readInt()
-        if (payloadLength !in 0..MAX_PAYLOAD_BYTES) {
+        if (payloadLength !in 1..MAX_PAYLOAD_BYTES) {
             throw ProtocolException("Invalid payload length: $payloadLength")
         }
 
@@ -95,7 +95,7 @@ object LinkProtocol {
         payloadLength: Int,
         sha256: ByteArray,
     ) {
-        require(payloadLength in 0..MAX_PAYLOAD_BYTES)
+        require(payloadLength in 1..MAX_PAYLOAD_BYTES)
         require(sha256.size == HASH_BYTES)
 
         output.writeInt(ACK_MAGIC)
@@ -120,7 +120,7 @@ object LinkProtocol {
         val receiverElapsedNanos = input.readLong()
         val receiverInfo = readUtf8(input, MAX_DEVICE_INFO_BYTES)
         val payloadLength = input.readInt()
-        if (payloadLength !in 0..MAX_PAYLOAD_BYTES) {
+        if (payloadLength !in 1..MAX_PAYLOAD_BYTES) {
             throw ProtocolException("Invalid ACK payload length: $payloadLength")
         }
         val hash = ByteArray(HASH_BYTES)
