@@ -42,7 +42,7 @@ class ProbeServer(
                         } catch (e: IOException) {
                             if (running.get()) throw e else break
                         }
-                        handleClient(socket)
+                        handleClientSafely(socket)
                     }
                 }
             } catch (t: Throwable) {
@@ -63,6 +63,14 @@ class ProbeServer(
     }
 
     fun isRunning(): Boolean = running.get()
+
+    private fun handleClientSafely(socket: Socket) {
+        try {
+            handleClient(socket)
+        } catch (t: Throwable) {
+            if (running.get()) onError(t)
+        }
+    }
 
     private fun handleClient(socket: Socket) {
         socket.use { client ->
@@ -120,7 +128,7 @@ object ProbeClient {
         senderInfo: String,
         payload: ByteArray,
     ): SendResult {
-        require(payload.size <= LinkProtocol.MAX_PAYLOAD_BYTES)
+        require(payload.size in 1..LinkProtocol.MAX_PAYLOAD_BYTES) { "Payload must be 1..${LinkProtocol.MAX_PAYLOAD_BYTES} bytes" }
         val expectedHash = LinkProtocol.sha256(payload)
         val startedAtNanos = System.nanoTime()
 
