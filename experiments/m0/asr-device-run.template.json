@@ -1,0 +1,32 @@
+{
+  "experiment_id": "M0-ASR-ANDROID-001",
+  "status": "not_run",
+  "purpose": "Measure first genuinely on-device Android ASR path; this template must not be used to claim ten-language coverage.",
+  "device": {
+    "manufacturer": "",
+    "model": "",
+    "android_api": 0,
+    "ram_mb": 0
+  },
+  "software": {
+    "git_commit": "",
+    "probe_version": "0.0.1-m0"
+  },
+  "speech": {
+    "locale": "hi-IN",
+    "recognizer_service": "",
+    "on_device_api_available": false,
+    "recognizer_path": "platform_on_device_or_fallback",
+    "offline_condition": "",
+    "offline_proof": "not_established"
+  },
+  "measurements": {
+    "cold_elapsed_ms": null,
+    "warm_elapsed_ms": null,
+    "peak_rss_mb": null,
+    "model_or_service_footprint_mb": null,
+    "transcript": "",
+    "error_code": null
+  },
+  "notes": "Record the exact airplane/Wi-Fi/network state. EXTRA_PREFER_OFFLINE is not proof of offline execution. A fallback network recognizer must not be reported as an offline pass."
+}
