@@ -137,12 +137,14 @@ class MainActivity : Activity() {
             } else null
             runOnUiThread {
                 sendButton.isEnabled = true
+                val success = result?.receiverAccepted == true && result.integrityMatched
                 sendStatus.text = if (result != null) {
                     String.format(
                         Locale.US,
-                        "ACK=%s · integrity=%s · %d bytes · RTT %.2f ms",
+                        "ACK=%s · integrity=%s · transfer=%s · %d bytes · RTT %.2f ms",
                         result.receiverAccepted,
                         result.integrityMatched,
+                        success,
                         result.payloadBytes,
                         result.roundTripMillis,
                     )
