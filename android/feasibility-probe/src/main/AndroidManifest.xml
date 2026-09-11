@@ -7,9 +7,10 @@
 
     <application
         android:allowBackup="false"
-        android:label="VĀṆI M1 Offline Loop"
+        android:label="VĀṆI M2 Ten-Language Credibility"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".m2.M2Activity" android:exported="false" />
         <activity android:name=".M1Activity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
