@@ -3,7 +3,7 @@ package dev.syntax6.vani.m0probe.m2
 /**
  * The ten languages named by SIH26173. Locale tags are the canonical identifiers
  * used by the Android speech APIs; they are kept explicit so support is never
- * inferred from a generic "multilingual" label.
+ * inferred from a generic "multilingual" model label.
  */
 enum class M2Language(
     val languageCode: String,
@@ -41,6 +41,7 @@ data class M2LanguagePath(
 
 enum class M2ComponentStatus {
     NOT_CHECKED,
+    PENDING_VERIFICATION,
     AVAILABLE,
     UNAVAILABLE,
     REQUIRES_DEVICE_DATA,
