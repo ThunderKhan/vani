@@ -8,12 +8,11 @@ import dev.syntax6.vani.m0probe.m1.M1Speech
 import java.util.Locale
 
 /**
- * M2 speech facade. This feasibility build delegates inference to Android's
- * local speech facilities. It never falls back to a network recognizer.
+ * M2 speech facade for the current Android feasibility build.
  *
- * Capability probing is asynchronous because TextToSpeech initialization is
- * asynchronous. A capability result is therefore only emitted after the TTS
- * engine reports its initialization status.
+ * The facade keeps the ten-language contract independent from the platform
+ * engine. It never introduces a network-backed speech fallback. Capability
+ * probing is asynchronous because TextToSpeech initialization is asynchronous.
  */
 object M2Speech {
     data class Capability(
@@ -23,24 +22,23 @@ object M2Speech {
         val detail: String,
     )
 
-    fun probe(context: Context, language: M2Language, callback: (Capability) -> Unit): TextToSpeech {
+    fun probe(context: Context, language: M2Language, callback: (Capability) -> Unit) {
         val asrAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
         val asrStatus = if (asrAvailable) {
-            // Android exposes recognizer capability, but actual locale support
-            // still has to be exercised on the target device.
+            // Android exposes an on-device recognizer, but locale support still
+            // requires an actual target-device inference check.
             M2ComponentStatus.REQUIRES_DEVICE_DATA
         } else {
             M2ComponentStatus.UNAVAILABLE
         }
 
-        var ttsRef: TextToSpeech? = null
-        ttsRef = TextToSpeech(context) { initStatus ->
-            val tts = ttsRef ?: return@TextToSpeech
-            val ttsStatus = if (initStatus != TextToSpeech.SUCCESS) {
-                M2ComponentStatus.UNAVAILABLE
-            } else {
+        lateinit var tts: TextToSpeech
+        tts = TextToSpeech(context) { initStatus ->
+            val ttsStatus = if (initStatus == TextToSpeech.SUCCESS) {
                 evaluateTtsLocale(tts, language)
+            } else {
+                M2ComponentStatus.UNAVAILABLE
             }
             val detail = when {
                 !asrAvailable -> "No Android on-device recognizer is exposed on this device"
@@ -48,10 +46,12 @@ object M2Speech {
                 ttsStatus == M2ComponentStatus.REQUIRES_DEVICE_DATA -> "On-device ASR capability exposed; TTS requires local voice data"
                 else -> "ASR capability exposed; TTS is unavailable for this locale"
             }
-            callback(Capability(language, asrStatus, ttsStatus, detail))
-            tts.shutdown()
+            try {
+                callback(Capability(language, asrStatus, ttsStatus, detail))
+            } finally {
+                tts.shutdown()
+            }
         }
-        return ttsRef
     }
 
     fun startAsr(
