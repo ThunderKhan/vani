@@ -1,66 +1,44 @@
 # M1 — Minimum Complete Offline Loop Status
 
-**Milestone state:** `IMPLEMENTED / PHYSICAL EVIDENCE OPEN`  
+**Milestone state:** `IMPLEMENTATION COMPLETE / PHYSICAL EVIDENCE OPEN`
 **Last updated:** 2026-09-12
 
-M1 implementation is now present in the Android module. M1 remains an evidence gate: source code and CI cannot close the milestone without the two-phone offline run required by `docs/ROADMAP.md`.
+M1 source implementation is present in the Android vertical slice. The milestone remains open until the required two-phone offline demonstration is recorded.
 
 ## Implemented vertical slice
 
 ```text
-HOLD PTT
-  -> Android on-device recognizer
-  -> recognizer endpoint callback
-  -> editable transcript
-  -> bounded versioned semantic bundle
-  -> direct local Wi-Fi TCP
-  -> receiver bundle validation
-  -> offline Android TTS
-  -> playback
+PTT / ASR
+  -> transcript surfaced for correction
+  -> SemanticBundle v1
+  -> UTF-8 bounded local TCP frame + SHA-256
+  -> receiver validates + deduplicates
+  -> receiver exposes transcript to TTS
   -> ACK
+  -> delivery state
 ```
 
 ### Components
 
-| M1 requirement | Implementation |
+| Requirement | Implementation |
 |---|---|
-| PTT capture | `M1Activity`: hold-to-speak button; microphone permission requested only on use |
-| Endpointing | Android recognizer `onEndOfSpeech`; final transcript is accepted only from `onResults` |
-| Offline STT | `M1Speech.startOfflineAsr()` uses API 31+ on-device recognizer only; no network fallback |
-| Transcript correction | Editable transcript field before sending |
-| Semantic bundle | `M1Bundle`: versioned JSON, UTF-8, bounded to 64 KiB |
-| Direct transport | `M1Transport`: local TCP on port 42425 |
-| Receiver validation | version, size, message-ID consistency, UTF-8/JSON validation |
-| Offline TTS | `M1Speech.speakOffline()` rejects voices marked `isNetworkConnectionRequired` |
-| ACK | Receiver returns accepted/duplicate/message ID/first-audio marker |
-| Truthful states | `QUEUED`, `TRANSFERRED`, `DELIVERED`, `ACKNOWLEDGED`, `FAILED`; duplicate suppression is explicit |
-| Timing | monotonic elapsed timing for ASR, transport, TTS first-audio, and end-to-end path |
-| Basic retry | one retry after a failed socket attempt |
-| Duplicate handling | durable `SharedPreferences` played-message marker; duplicate playback is suppressed |
-| Failure handling | peer/ACK/TTS failures become `FAILED`, never an ambiguous `sent` state |
+| Speech capture | `SpeechProbe` + Android microphone permission |
+| Offline ASR path | API 31+ on-device recognizer when the device exposes it; no product-level fallback claim |
+| Transcript handoff | ASR result is surfaced into the sender payload field for correction before send |
+| Semantic bundle | `SemanticBundle` mirrors the logical schema fields and validates bounds |
+| UTF-8 transport | Existing bounded `LinkProtocol` with 64 KiB maximum and SHA-256 |
+| Direct transport | Local TCP on port `42424` |
+| Receiver validation | Frame integrity followed by `SemanticBundle.decodeUtf8()` validation |
+| Duplicate handling | Durable `SharedPreferences` message-ID marker; duplicate bundle is ACKed but not re-played |
+| Delivery states | `QUEUED`, `TRANSFERRED`, `DELIVERED`, `ACKNOWLEDGED`, `FAILED` |
+| TTS | Android TTS probe reports engine/voice/network requirement and synthesizes audio |
+| Evidence | Existing JSON evidence capture and clipboard export |
+| CI | Android build/test workflow runs on every push |
 
-## Deliberate M1 boundary
+## Boundary
 
-This is the first vertical slice, not the final VĀṆI architecture. Security envelope, durable outbox semantics beyond the basic state record, fragmentation, relay/store-carry-forward, critical-field safety policy, ten-language production packs, and routing belong to later milestones.
+M1 intentionally does not implement mesh routing, relay/store-and-forward, fragmentation, production cryptography, critical-information safety policy, or the final ten-language model packs. Those are later milestones and should not be pulled into the M1 proof prematurely.
 
-The current transport is local Wi-Fi TCP because it is the smallest direct transport already proven at the protocol-contract level in the repository. It does not imply a mesh or Bluetooth Mesh implementation.
+## Physical gate still open
 
-## Evidence still required
-
-M1 cannot be marked complete until a physical run records:
-
-- two real Android phones;
-- Internet disabled for the judged path;
-- offline STT actually producing the sender transcript;
-- receiver playing locally synthesized speech from the received text;
-- ACK returned to the sender;
-- bundle byte size from the actual serialization;
-- ASR endpoint and completion timestamps;
-- transport timing;
-- TTS first-audio timing;
-- end-to-end timing;
-- duplicate-input behavior;
-- peer-loss or ACK-loss behavior;
-- repeatable build/run procedure.
-
-Until that run exists, **M1 is not complete**.
+Implementation completion is not evidence of offline behavior. M1 remains open until two real Android devices demonstrate the full path with Internet unavailable, including offline ASR, editable transcript, bundle transfer, receiver-side TTS playback, ACK, timing, duplicate handling, and a failure/peer-loss case.
