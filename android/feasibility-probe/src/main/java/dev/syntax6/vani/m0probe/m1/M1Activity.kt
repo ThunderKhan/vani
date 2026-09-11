@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import dev.syntax6.vani.m0probe.MainActivity
+import dev.syntax6.vani.m0probe.m2.M2Activity
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
@@ -64,6 +65,9 @@ class M1Activity : Activity() {
         root.addView(button("Refresh network state").apply { setOnClickListener { refreshNetworkStatus() } })
         root.addView(button("Open M0 feasibility probe").apply {
             setOnClickListener { startActivity(Intent(this@M1Activity, MainActivity::class.java)) }
+        })
+        root.addView(button("Open M2 ten-language credibility").apply {
+            setOnClickListener { startActivity(Intent(this@M1Activity, M2Activity::class.java)) }
         })
 
         stateText = text("State: IDLE").apply { setPadding(0, 12, 0, 8) }
@@ -216,10 +220,10 @@ class M1Activity : Activity() {
                     stateText.text = "State: ACKNOWLEDGED · ${message.id}"
                     metrics.text = String.format(
                         Locale.US,
-                        "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry",
+                        "message=%s\nbundle=%d bytes\ntransport+ACK=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry",
                         message.id,
                         finalResult.bundleBytes,
-                        finalResult.transportMillis,
+                        finalResult.endToEndMillis,
                         finalResult.ttsFirstAudioMillis ?: "n/a",
                         finalResult.endToEndMillis,
                         finalResult.duplicate,
