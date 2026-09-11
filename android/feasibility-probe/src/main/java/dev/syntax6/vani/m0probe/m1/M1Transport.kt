@@ -25,9 +25,8 @@ object M1Transport {
         val acknowledged: Boolean,
         val duplicate: Boolean,
         val bundleBytes: Int,
-        val transportMillis: Long,
-        val ttsFirstAudioMillis: Long?,
         val endToEndMillis: Long,
+        val ttsFirstAudioMillis: Long?,
         val error: String? = null,
     )
 
@@ -65,9 +64,8 @@ object M1Transport {
                 acknowledged = true,
                 duplicate = duplicate,
                 bundleBytes = bundle.size,
-                transportMillis = (end - start) / 1_000_000,
-                ttsFirstAudioMillis = ttsFirstAudioMillis,
                 endToEndMillis = (end - start) / 1_000_000,
+                ttsFirstAudioMillis = ttsFirstAudioMillis,
             )
         }
     }
