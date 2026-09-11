@@ -2,7 +2,6 @@ package dev.syntax6.vani.m0probe.m1
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -21,16 +20,12 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/**
- * M1 vertical slice. This is deliberately simple and direct: Android on-device
- * speech + local Wi-Fi TCP. It is not the final M4 resilient/security stack.
- */
+/** M1 vertical slice: Android on-device speech + direct local Wi-Fi TCP. */
 class M1Activity : Activity() {
     private val executor: ExecutorService = Executors.newCachedThreadPool()
     private lateinit var store: M1DeliveryStore
     private var recognizer: android.speech.SpeechRecognizer? = null
     private var server: M1Transport.Server? = null
-    private var asrStartedNanos = 0L
 
     private lateinit var networkStatus: TextView
     private lateinit var stateText: TextView
@@ -56,27 +51,19 @@ class M1Activity : Activity() {
     }
 
     private fun buildUi(): View {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(24, 24, 24, 24)
-        }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 24, 24, 24) }
         fun text(value: String, size: Float = 16f) = TextView(this).apply { text = value; textSize = size }
-        fun edit(value: String, hint: String): EditText = EditText(this).apply {
-            setText(value); this.hint = hint; setSingleLine(true)
-        }
+        fun edit(value: String, hint: String): EditText = EditText(this).apply { setText(value); this.hint = hint; setSingleLine(true) }
         fun button(label: String) = Button(this).apply { text = label }
 
         root.addView(text("VĀṆI · M1 Offline Loop", 25f))
         root.addView(text("PTT → offline STT → editable text → semantic bundle → local Wi-Fi → offline TTS → ACK", 14f))
-        networkStatus = text("")
-        networkStatus.setPadding(0, 16, 0, 8)
+        networkStatus = text("").apply { setPadding(0, 16, 0, 8) }
         root.addView(networkStatus)
         root.addView(button("Refresh network state").apply { setOnClickListener { refreshNetworkStatus() } })
 
-        stateText = text("State: IDLE")
-        stateText.setPadding(0, 12, 0, 8)
+        stateText = text("State: IDLE").apply { setPadding(0, 12, 0, 8) }
         root.addView(stateText)
-
         localeInput = edit("hi-IN", "STT/TTS locale")
         root.addView(localeInput)
         transcript = edit("", "Transcript / editable message")
@@ -96,29 +83,21 @@ class M1Activity : Activity() {
 
         hostInput = edit("", "Receiver IPv4 address")
         root.addView(hostInput)
-        hostButton = button("Start receiver on TCP ${M1Transport.PORT}")
-        hostButton.setOnClickListener { toggleHost() }
+        hostButton = button("Start receiver on TCP ${M1Transport.PORT}").apply { setOnClickListener { toggleHost() } }
         root.addView(hostButton)
-
-        sendButton = button("Send message")
-        sendButton.isEnabled = false
-        sendButton.setOnClickListener { sendMessage() }
+        sendButton = button("Send message").apply { isEnabled = false; setOnClickListener { sendMessage() } }
         root.addView(sendButton)
-
-        metrics = text("No M1 run yet.", 13f)
-        metrics.setPadding(0, 16, 0, 8)
-        metrics.setTextIsSelectable(true)
+        metrics = text("No M1 run yet.", 13f).apply { setPadding(0, 16, 0, 8); setTextIsSelectable(true) }
         root.addView(metrics)
         return root
     }
 
     private fun refreshNetworkStatus() {
         val cm = getSystemService(ConnectivityManager::class.java)
-        val network = cm.activeNetwork
-        val caps = network?.let(cm::getNetworkCapabilities)
+        val caps = cm.activeNetwork?.let(cm::getNetworkCapabilities)
         val internet = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
         val wifi = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-        networkStatus.text = "Internet validated: $internet · Wi-Fi transport: $wifi\nM1 judged path must run with Internet disabled; this screen never treats Wi-Fi presence as proof of offline operation."
+        networkStatus.text = "Internet validated: $internet · Wi-Fi transport: $wifi\nM1 judged path must run with Internet disabled; Wi-Fi presence alone is not treated as proof of offline operation."
     }
 
     private fun startPtt() {
@@ -129,8 +108,7 @@ class M1Activity : Activity() {
         }
         val locale = localeInput.text.toString().trim().ifBlank { "hi-IN" }
         transcript.text.clear()
-        stateText.text = "State: LISTENING · endpointing handled by recognizer"
-        asrStartedNanos = System.nanoTime()
+        stateText.text = "State: LISTENING · endpointing handled by on-device recognizer"
         recognizer = M1Speech.startOfflineAsr(this, locale) { result ->
             runOnUiThread {
                 if (!result.transcript.isNullOrBlank()) {
@@ -138,24 +116,17 @@ class M1Activity : Activity() {
                     transcript.setSelection(transcript.length())
                     sendButton.isEnabled = true
                     stateText.text = "State: TRANSCRIPT_READY · endpoint=${result.endpointed}"
-                } else {
-                    stateText.text = "State: ASR_FAILED · ${result.error ?: "unknown error"}"
-                }
-                metrics.text = "ASR: ${result.elapsedMillis} ms · endpointed=${result.endpointed}"
+                } else stateText.text = "State: ASR_FAILED · ${result.error ?: "unknown error"}"
+                metrics.text = "ASR=${result.elapsedMillis} ms · endpointed=${result.endpointed}"
             }
         }
     }
 
-    private fun stopPtt() {
-        runCatching { recognizer?.stopListening() }
-        recognizer = null
-    }
+    private fun stopPtt() { runCatching { recognizer?.stopListening() } }
 
     private fun toggleHost() {
         if (server?.isRunning() == true) {
-            server?.stop(); server = null
-            hostButton.text = "Start receiver on TCP ${M1Transport.PORT}"
-            return
+            server?.stop(); server = null; hostButton.text = "Start receiver on TCP ${M1Transport.PORT}"; return
         }
         server = M1Transport.Server { message, bytes -> receiveMessage(message, bytes) }
         server!!.start(executor)
@@ -173,7 +144,7 @@ class M1Activity : Activity() {
         var firstAudio: Long? = null
         var error: String? = null
         runOnUiThread {
-            stateText.text = "State: RECEIVED · validating bundle · ${bytes} bytes"
+            stateText.text = "State: RECEIVED · ${bytes} byte bundle"
             M1Speech.speakOffline(this, message.languageTag, message.text) { result ->
                 success = result.success
                 firstAudio = result.firstAudioMillis
@@ -201,7 +172,7 @@ class M1Activity : Activity() {
             return
         }
 
-        val message = M1Message(languageTag = locale, text = text, createdElapsedNanos = System.nanoTime())
+        val message = M1Message(languageTag = locale, text = text, createdElapsedNanos = System.nanoTime(), source = "android-direct", destination = host)
         val bundle = M1Bundle.encode(message)
         store.setState(message.id, M1DeliveryState.QUEUED)
         stateText.text = "State: QUEUED · ${message.id}"
@@ -209,31 +180,24 @@ class M1Activity : Activity() {
         executor.execute {
             var result: M1Transport.SendResult? = null
             var error: Throwable? = null
-            val sendStarted = SystemClock.elapsedRealtime()
             repeat(2) { attempt ->
                 if (result != null) return@repeat
-                try {
-                    result = M1Transport.send(host, bundle, message.id)
-                    if (result!!.acknowledged) return@repeat
-                } catch (t: Throwable) {
-                    error = t
-                    if (attempt == 0) Thread.sleep(250)
-                }
+                try { result = M1Transport.send(host, bundle, message.id) }
+                catch (t: Throwable) { error = t; if (attempt == 0) Thread.sleep(250) }
             }
             val finalResult = result
             runOnUiThread {
                 sendButton.isEnabled = true
+                if (finalResult?.transferred == true) store.setState(message.id, M1DeliveryState.TRANSFERRED)
+                if (finalResult?.delivered == true) store.setState(message.id, M1DeliveryState.DELIVERED)
                 if (finalResult?.acknowledged == true && finalResult.delivered) {
                     store.setState(message.id, M1DeliveryState.ACKNOWLEDGED)
                     stateText.text = "State: ACKNOWLEDGED · ${message.id}"
-                    metrics.text = String.format(Locale.US,
-                        "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretries=up to 1",
-                        message.id, finalResult.bundleBytes, finalResult.transportMillis,
-                        finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
+                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, finalResult.transportMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
                 } else {
                     store.setState(message.id, M1DeliveryState.FAILED)
                     stateText.text = "State: FAILED · peer/ACK unavailable"
-                    metrics.text = "Failure after retry: ${error?.message ?: "receiver rejected delivery"}; elapsed=${SystemClock.elapsedRealtime() - sendStarted} ms"
+                    metrics.text = "Failure: ${error?.message ?: "receiver rejected delivery"}"
                 }
             }
         }
@@ -241,16 +205,14 @@ class M1Activity : Activity() {
 
     private fun isValidatedInternetAvailable(): Boolean {
         val cm = getSystemService(ConnectivityManager::class.java)
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
+        val caps = cm.activeNetwork?.let(cm::getNetworkCapabilities) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == REQUEST_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
             Toast.makeText(this, "Microphone permission granted; hold PTT again", Toast.LENGTH_SHORT).show()
-        }
     }
 
     companion object { private const val REQUEST_AUDIO = 1101 }
