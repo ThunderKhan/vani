@@ -26,9 +26,9 @@ object M2Speech {
         val asrAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
         val asrStatus = if (asrAvailable) {
-            // Android exposes an on-device recognizer, but locale support still
-            // requires an actual target-device inference check.
-            M2ComponentStatus.REQUIRES_DEVICE_DATA
+            // The platform exposes an on-device engine, but this API does not
+            // establish that the requested locale is installed or usable.
+            M2ComponentStatus.PENDING_VERIFICATION
         } else {
             M2ComponentStatus.UNAVAILABLE
         }
@@ -42,9 +42,9 @@ object M2Speech {
             }
             val detail = when {
                 !asrAvailable -> "No Android on-device recognizer is exposed on this device"
-                ttsStatus == M2ComponentStatus.AVAILABLE -> "On-device ASR capability exposed; TTS locale is locally available"
-                ttsStatus == M2ComponentStatus.REQUIRES_DEVICE_DATA -> "On-device ASR capability exposed; TTS requires local voice data"
-                else -> "ASR capability exposed; TTS is unavailable for this locale"
+                ttsStatus == M2ComponentStatus.AVAILABLE -> "On-device ASR engine exposed; TTS locale is locally available"
+                ttsStatus == M2ComponentStatus.REQUIRES_DEVICE_DATA -> "On-device ASR engine exposed; TTS requires local voice data"
+                else -> "On-device ASR engine exposed; TTS is unavailable for this locale"
             }
             try {
                 callback(Capability(language, asrStatus, ttsStatus, detail))
