@@ -8,8 +8,8 @@ import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.speech.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.TextToSpeech
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -68,22 +68,29 @@ object M1Speech {
 
     fun speakOffline(context: Context, localeTag: String, text: String, callback: (TtsResult) -> Unit): TextToSpeech {
         val started = SystemClock.elapsedRealtime()
+        val finished = AtomicBoolean(false)
         var ttsRef: TextToSpeech? = null
+        fun finish(tts: TextToSpeech, result: TtsResult) {
+            if (finished.compareAndSet(false, true)) {
+                callback(result)
+                tts.shutdown()
+            }
+        }
         ttsRef = TextToSpeech(context) { status ->
             val tts = ttsRef ?: return@TextToSpeech
             if (status != TextToSpeech.SUCCESS) {
-                callback(TtsResult(false, null, SystemClock.elapsedRealtime() - started, "TTS initialization failed"))
-                tts.shutdown(); return@TextToSpeech
+                finish(tts, TtsResult(false, null, SystemClock.elapsedRealtime() - started, "TTS initialization failed"))
+                return@TextToSpeech
             }
             val languageResult = tts.setLanguage(Locale.forLanguageTag(localeTag))
             val voice = tts.voice
             if (languageResult == TextToSpeech.LANG_MISSING_DATA || languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                callback(TtsResult(false, null, SystemClock.elapsedRealtime() - started, "Language not supported"))
-                tts.shutdown(); return@TextToSpeech
+                finish(tts, TtsResult(false, null, SystemClock.elapsedRealtime() - started, "Language not supported"))
+                return@TextToSpeech
             }
             if (voice?.isNetworkConnectionRequired == true) {
-                callback(TtsResult(false, null, SystemClock.elapsedRealtime() - started, "Selected TTS voice requires a network"))
-                tts.shutdown(); return@TextToSpeech
+                finish(tts, TtsResult(false, null, SystemClock.elapsedRealtime() - started, "Selected TTS voice requires a network"))
+                return@TextToSpeech
             }
             val utteranceId = "m1-${SystemClock.elapsedRealtimeNanos()}"
             var firstAudio: Long? = null
@@ -92,21 +99,19 @@ object M1Speech {
                     if (id == utteranceId && firstAudio == null) firstAudio = SystemClock.elapsedRealtime() - started
                 }
                 override fun onDone(id: String?) {
-                    if (id == utteranceId) { callback(TtsResult(true, firstAudio, SystemClock.elapsedRealtime() - started, null)); tts.shutdown() }
+                    if (id == utteranceId) finish(tts, TtsResult(true, firstAudio, SystemClock.elapsedRealtime() - started, null))
                 }
                 override fun onError(id: String?) {
-                    if (id == utteranceId) { callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS synthesis failed")); tts.shutdown() }
+                    if (id == utteranceId) finish(tts, TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS synthesis failed"))
                 }
             })
             try {
                 val result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
                 if (result != TextToSpeech.SUCCESS) {
-                    callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() rejected the utterance"))
-                    tts.shutdown()
+                    finish(tts, TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() rejected the utterance"))
                 }
             } catch (error: RuntimeException) {
-                callback(TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() failed: ${error.message ?: error::class.java.simpleName}"))
-                tts.shutdown()
+                finish(tts, TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() failed: ${error.message ?: error::class.java.simpleName}"))
             }
         }
         return ttsRef
