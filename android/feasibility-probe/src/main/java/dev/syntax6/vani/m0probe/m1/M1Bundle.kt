@@ -2,7 +2,6 @@ package dev.syntax6.vani.m0probe.m1
 
 import org.json.JSONObject
 import java.nio.ByteBuffer
-import java.nio.CharBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
@@ -37,16 +36,11 @@ object M1Bundle {
         require(bytes.size in 1..MAX_BYTES) { "invalid bundle size" }
         val json = JSONObject(decodeUtf8(bytes))
         require(json.optInt("v", -1) == VERSION) { "unsupported bundle version" }
-
         val message = M1Message(
-            id = json.optString("id", ""),
-            languageTag = json.optString("lang", ""),
-            text = json.optString("text", ""),
-            createdElapsedNanos = json.optLong("created_elapsed_nanos", -1L),
-            source = json.optString("source", ""),
-            destination = json.optString("destination", ""),
-            priority = json.optInt("priority", -1),
-            expiresAfterMillis = json.optLong("expires_after_ms", -1L),
+            id = json.optString("id", ""), languageTag = json.optString("lang", ""),
+            text = json.optString("text", ""), createdElapsedNanos = json.optLong("created_elapsed_nanos", -1L),
+            source = json.optString("source", ""), destination = json.optString("destination", ""),
+            priority = json.optInt("priority", -1), expiresAfterMillis = json.optLong("expires_after_ms", -1L),
             ackPolicy = json.optString("ack_policy", ""),
         )
         validate(message)
@@ -66,10 +60,10 @@ object M1Bundle {
     }
 
     private fun decodeUtf8(bytes: ByteArray): String = try {
-        val decoder = StandardCharsets.UTF_8.newDecoder()
+        StandardCharsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
-        decoder.decode(ByteBuffer.wrap(bytes)).toString()
+            .decode(ByteBuffer.wrap(bytes)).toString()
     } catch (error: CharacterCodingException) {
         throw IllegalArgumentException("bundle is not valid UTF-8", error)
     }
