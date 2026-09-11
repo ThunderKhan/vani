@@ -5,6 +5,7 @@
 - **Canonical implementation roadmap:** `docs/ROADMAP.md`
 - **Quick milestone reference:** `docs/MILESTONES.md`
 - **Current M0 gate status:** `docs/M0_STATUS.md`
+- **Current M1 implementation/evidence status:** `docs/M1_STATUS.md`
 - Implementation uses one sequence only: **M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6**.
 - `Tier 1`, `Tier 2`, and `Tier 3` are maturity labels, not alternate phases.
 
@@ -13,7 +14,7 @@
 - `Context.md`
 - `README.md`
 - `android/README.md`
-- `android/feasibility-probe/` — disposable M0 physical Unicode-link probe
+- `android/feasibility-probe/` — Android M0 feasibility instrument and M1 direct offline vertical slice
 - `docs/API_CONTRACTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/BENCHMARK_PLAN.md`
@@ -34,6 +35,7 @@
 - `docs/LIMITATIONS.md`
 - `docs/M0_REQUIREMENTS.md`
 - `docs/M0_STATUS.md`
+- `docs/M1_STATUS.md`
 - `docs/MILESTONES.md`
 - `docs/MODEL_EVALUATION.md`
 - `docs/MODEL_SELECTION.md`
