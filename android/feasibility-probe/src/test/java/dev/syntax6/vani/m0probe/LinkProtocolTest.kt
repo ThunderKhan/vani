@@ -49,6 +49,19 @@ class LinkProtocolTest {
         LinkProtocol.readDataFrame(DataInputStream(ByteArrayInputStream(corrupted)))
     }
 
+    @Test(expected = ProtocolException::class)
+    fun malformedUtf8InDeviceInfoIsRejected() {
+        val bytes = ByteArrayOutputStream()
+        DataOutputStream(bytes).use { output ->
+            output.writeInt(0x56414E49)
+            output.writeByte(LinkProtocol.VERSION)
+            output.writeLong(1L)
+            output.writeInt(1)
+            output.writeByte(0xFF)
+        }
+        LinkProtocol.readDataFrame(DataInputStream(ByteArrayInputStream(bytes.toByteArray())))
+    }
+
     @Test
     fun acknowledgementPreservesHashAndReceiverIdentity() {
         val payload = "hello".toByteArray()
