@@ -8,13 +8,13 @@ M1 source implementation is present in the Android vertical slice. The milestone
 ## Implemented vertical slice
 
 ```text
-PTT / ASR
-  -> transcript surfaced for correction
-  -> SemanticBundle v1
-  -> UTF-8 bounded local TCP frame + SHA-256
+PTT / on-device ASR
+  -> editable transcript
+  -> M1Bundle v1
+  -> bounded UTF-8 local TCP frame + SHA-256
   -> receiver validates + deduplicates
-  -> receiver exposes transcript to TTS
-  -> ACK
+  -> receiver-side offline-safe TTS
+  -> ACK + hash verification
   -> delivery state
 ```
 
@@ -22,18 +22,18 @@ PTT / ASR
 
 | Requirement | Implementation |
 |---|---|
-| Speech capture | `SpeechProbe` + Android microphone permission |
-| Offline ASR path | API 31+ on-device recognizer when the device exposes it; no product-level fallback claim |
-| Transcript handoff | ASR result is surfaced into the sender payload field for correction before send |
-| Semantic bundle | `SemanticBundle` mirrors the logical schema fields and validates bounds |
-| UTF-8 transport | Existing bounded `LinkProtocol` with 64 KiB maximum and SHA-256 |
-| Direct transport | Local TCP on port `42424` |
-| Receiver validation | Frame integrity followed by `SemanticBundle.decodeUtf8()` validation |
+| Speech capture | `M1Speech` + Android microphone permission |
+| Offline ASR path | API 31+ on-device recognizer when the device exposes it; no network-backed fallback |
+| Transcript handoff | ASR result is surfaced into the editable sender field before send |
+| Semantic bundle | `M1Bundle` v1 with bounded JSON encoding and strict validation |
+| UTF-8 transport | M1 TCP frame with 64 KiB maximum and SHA-256 carried across the wire |
+| Direct transport | Local TCP on port `42425` |
+| Receiver validation | Hash verification followed by `M1Bundle.decode()` validation |
 | Duplicate handling | Durable `SharedPreferences` message-ID marker; duplicate bundle is ACKed but not re-played |
 | Delivery states | `QUEUED`, `TRANSFERRED`, `DELIVERED`, `ACKNOWLEDGED`, `FAILED` |
-| TTS | Android TTS probe reports engine/voice/network requirement and synthesizes audio |
-| Evidence | Existing JSON evidence capture and clipboard export |
-| CI | Android build/test workflow runs on every push |
+| TTS | Android TTS rejects a selected voice when `isNetworkConnectionRequired == true` |
+| M0 access | M1 UI can launch the standalone M0 feasibility probe |
+| CI | Android build/test workflow runs on every Android source/configuration push |
 
 ## Boundary
 
