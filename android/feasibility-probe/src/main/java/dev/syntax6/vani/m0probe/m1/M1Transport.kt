@@ -5,13 +5,16 @@ import java.io.DataOutputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.security.MessageDigest
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Direct local transport for the M1 feasibility slice. */
 object M1Transport {
     const val PORT = 42425
     private const val MAGIC = 0x56314E49 // V1NI
     private const val ACK = 0x41434B31 // ACK1
+    private const val HASH_BYTES = 32
     private const val CONNECT_TIMEOUT_MS = 4_000
     private const val READ_TIMEOUT_MS = 8_000
 
@@ -28,14 +31,10 @@ object M1Transport {
         val error: String? = null,
     )
 
-    data class ReceiveResult(
-        val message: M1Message,
-        val bundleBytes: Int,
-        val duplicate: Boolean,
-        val receiverReceivedNanos: Long,
-    )
-
     fun send(host: String, bundle: ByteArray, messageId: String): SendResult {
+        require(bundle.size in 1..M1Bundle.MAX_BYTES) { "invalid bundle size" }
+        require(messageId.isNotBlank() && messageId.length <= 128) { "invalid message id" }
+        val expectedHash = sha256(bundle)
         val start = System.nanoTime()
         Socket().use { socket ->
             socket.connect(InetSocketAddress(host, PORT), CONNECT_TIMEOUT_MS)
@@ -46,14 +45,17 @@ object M1Transport {
             out.writeInt(bundle.size)
             out.writeUTF(messageId)
             out.write(bundle)
+            out.write(expectedHash)
             out.flush()
 
-            val ackMagic = input.readInt()
-            require(ackMagic == ACK) { "invalid ACK magic" }
+            require(input.readInt() == ACK) { "invalid ACK magic" }
             val accepted = input.readBoolean()
             val duplicate = input.readBoolean()
             val id = input.readUTF()
             require(id == messageId) { "ACK message id mismatch" }
+            val ackHash = ByteArray(HASH_BYTES)
+            input.readFully(ackHash)
+            require(MessageDigest.isEqual(expectedHash, ackHash)) { "ACK SHA-256 mismatch" }
             val ttsFirstAudioMillis = input.readLong().let { if (it < 0) null else it }
             val end = System.nanoTime()
             return SendResult(
@@ -72,7 +74,7 @@ object M1Transport {
 
     class Server(private val handler: (M1Message, Int) -> ReceiveAck) {
         private val running = AtomicBoolean(false)
-        private var socket: ServerSocket? = null
+        @Volatile private var socket: ServerSocket? = null
 
         data class ReceiveAck(val accepted: Boolean, val duplicate: Boolean, val ttsFirstAudioMillis: Long?)
 
@@ -88,7 +90,7 @@ object M1Transport {
                         }
                     }
                 } catch (_: Exception) {
-                    // Stop/close is an expected path. The UI reports failure through lifecycle state.
+                    // Closing the socket is the normal stop path; the activity owns user-facing status.
                 } finally {
                     running.set(false)
                 }
@@ -113,29 +115,42 @@ object M1Transport {
                     val size = input.readInt()
                     require(size in 1..M1Bundle.MAX_BYTES) { "invalid bundle size" }
                     val id = input.readUTF()
-                    require(id.length <= 128) { "message id too long" }
+                    require(id.isNotBlank() && id.length <= 128) { "invalid message id" }
                     val bytes = ByteArray(size)
                     input.readFully(bytes)
+                    val expectedHash = ByteArray(HASH_BYTES)
+                    input.readFully(expectedHash)
+                    val actualHash = sha256(bytes)
+                    require(MessageDigest.isEqual(expectedHash, actualHash)) { "bundle SHA-256 mismatch" }
                     val decoded = M1Bundle.decode(bytes)
                     require(decoded.message.id == id) { "frame/bundle id mismatch" }
                     val ack = handler(decoded.message, bytes.size)
-                    output.writeInt(ACK)
-                    output.writeBoolean(ack.accepted)
-                    output.writeBoolean(ack.duplicate)
-                    output.writeUTF(decoded.message.id)
-                    output.writeLong(ack.ttsFirstAudioMillis ?: -1L)
-                    output.flush()
+                    writeAck(output, ack.accepted, ack.duplicate, decoded.message.id, actualHash, ack.ttsFirstAudioMillis)
                 } catch (_: Exception) {
-                    runCatching {
-                        output.writeInt(ACK)
-                        output.writeBoolean(false)
-                        output.writeBoolean(false)
-                        output.writeUTF("")
-                        output.writeLong(-1L)
-                        output.flush()
-                    }
+                    runCatching { writeAck(output, false, false, "", ByteArray(HASH_BYTES), null) }
                 }
             }
         }
     }
+
+    private fun writeAck(
+        output: DataOutputStream,
+        accepted: Boolean,
+        duplicate: Boolean,
+        messageId: String,
+        sha256: ByteArray,
+        ttsFirstAudioMillis: Long?,
+    ) {
+        require(sha256.size == HASH_BYTES)
+        output.writeInt(ACK)
+        output.writeBoolean(accepted)
+        output.writeBoolean(duplicate)
+        output.writeUTF(messageId)
+        output.write(sha256)
+        output.writeLong(ttsFirstAudioMillis ?: -1L)
+        output.flush()
+    }
+
+    private fun sha256(bytes: ByteArray): ByteArray =
+        MessageDigest.getInstance("SHA-256").digest(bytes)
 }
