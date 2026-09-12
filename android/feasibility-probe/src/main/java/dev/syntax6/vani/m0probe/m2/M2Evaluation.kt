@@ -41,12 +41,12 @@ object M2Evaluation {
         reference: String,
         hypothesis: String,
     ): AsrScore {
-        val normalizedReference = M2Normalizer.scoringText(reference)
-        val normalizedHypothesis = M2Normalizer.scoringText(hypothesis)
+        val normalizedReference = M2Normalizer.scoringText(language, reference)
+        val normalizedHypothesis = M2Normalizer.scoringText(language, hypothesis)
         val referenceTokens = normalizedReference.split(' ').filter(String::isNotEmpty)
         val hypothesisTokens = normalizedHypothesis.split(' ').filter(String::isNotEmpty)
-        val referenceChars = normalizedReference.codePoints().toArray().filterNot(::isWhitespace).toIntArray()
-        val hypothesisChars = normalizedHypothesis.codePoints().toArray().filterNot(::isWhitespace).toIntArray()
+        val referenceChars = codePointsWithoutWhitespace(normalizedReference)
+        val hypothesisChars = codePointsWithoutWhitespace(normalizedHypothesis)
         return AsrScore(
             language = language,
             fixtureId = fixtureId,
@@ -57,7 +57,8 @@ object M2Evaluation {
         )
     }
 
-    private fun isWhitespace(codePoint: Int): Boolean = Character.isWhitespace(codePoint)
+    private fun codePointsWithoutWhitespace(text: String): IntArray =
+        text.codePoints().toArray().filterNot { Character.isWhitespace(it) }
 
     private fun <T> errorRate(reference: List<T>, hypothesis: List<T>): Double =
         if (reference.isEmpty()) {
@@ -82,11 +83,7 @@ object M2Evaluation {
             current[0] = i + 1
             for (j in b.indices) {
                 val substitution = previous[j] + if (a[i] == b[j]) 0 else 1
-                current[j + 1] = minOf(
-                    current[j] + 1,
-                    previous[j + 1] + 1,
-                    substitution,
-                )
+                current[j + 1] = minOf(current[j] + 1, previous[j + 1] + 1, substitution)
             }
             val swap = previous
             previous = current
@@ -104,11 +101,7 @@ object M2Evaluation {
             current[0] = i + 1
             for (j in b.indices) {
                 val substitution = previous[j] + if (a[i] == b[j]) 0 else 1
-                current[j + 1] = minOf(
-                    current[j] + 1,
-                    previous[j + 1] + 1,
-                    substitution,
-                )
+                current[j + 1] = minOf(current[j] + 1, previous[j + 1] + 1, substitution)
             }
             val swap = previous
             previous = current
