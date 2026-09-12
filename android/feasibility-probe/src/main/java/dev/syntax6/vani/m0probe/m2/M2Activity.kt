@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -25,8 +27,9 @@ class M2Activity : Activity() {
     private lateinit var transcript: EditText
     private lateinit var speakText: EditText
     private lateinit var results: TextView
-    private var recognizer: android.speech.SpeechRecognizer? = null
-    private var tts: android.speech.tts.TextToSpeech? = null
+    private var recognizer: SpeechRecognizer? = null
+    private var tts: TextToSpeech? = null
+    private val probeGeneration = AtomicInteger(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +37,7 @@ class M2Activity : Activity() {
     }
 
     override fun onDestroy() {
+        probeGeneration.incrementAndGet()
         recognizer?.destroy()
         tts?.shutdown()
         super.onDestroy()
@@ -75,7 +79,7 @@ class M2Activity : Activity() {
             setSingleLine(false)
         }
         root.addView(transcript)
-        root.addView(button("Hold-free ASR test").apply { setOnClickListener { startAsr() } })
+        root.addView(button("Start offline ASR").apply { setOnClickListener { startAsr() } })
 
         speakText = EditText(this).apply {
             hint = "Text to synthesize"
@@ -96,10 +100,12 @@ class M2Activity : Activity() {
     private fun selectedLanguage(): M2Language = M2Language.entries[languageSpinner.selectedItemPosition]
 
     private fun probeSelected() {
+        probeGeneration.incrementAndGet()
         val language = selectedLanguage()
         status.text = "Probing ${language.displayName}…"
         M2Speech.probe(this, language) { capability ->
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 status.text = "${capability.language.displayName}: ASR=${capability.asr} · TTS=${capability.tts}"
                 results.text = capability.detail
             }
@@ -107,25 +113,19 @@ class M2Activity : Activity() {
     }
 
     private fun probeAll() {
-        val generation = AtomicInteger(0)
-        val runId = generation.incrementAndGet()
+        val runId = probeGeneration.incrementAndGet()
         results.text = "Probing all ten languages…\n"
-        probeNext(M2Language.entries, 0, runId, generation)
+        probeNext(M2Language.entries, 0, runId)
     }
 
-    private fun probeNext(
-        languages: List<M2Language>,
-        index: Int,
-        runId: Int,
-        generation: AtomicInteger,
-    ) {
-        if (runId != generation.get() || index >= languages.size) return
+    private fun probeNext(languages: List<M2Language>, index: Int, runId: Int) {
+        if (runId != probeGeneration.get() || index >= languages.size || isFinishing || isDestroyed) return
         val language = languages[index]
         M2Speech.probe(this, language) { capability ->
             runOnUiThread {
-                if (runId != generation.get()) return@runOnUiThread
+                if (runId != probeGeneration.get() || isFinishing || isDestroyed) return@runOnUiThread
                 results.append("${language.languageCode}: ASR=${capability.asr}, TTS=${capability.tts}\n")
-                probeNext(languages, index + 1, runId, generation)
+                probeNext(languages, index + 1, runId)
             }
         }
     }
