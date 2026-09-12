@@ -25,15 +25,18 @@ class M2EvaluationTest {
     @Test
     fun normalizationPreservesIndicCharactersAndCanonicalizesWhitespace() {
         val input = "  सेक्टर\u00A013   में\n18:30 बजे  "
-        assertEquals("सेक्टर 13 में 18:30 बजे", M2Normalizer.normalize(input))
+        assertEquals(
+            "सेक्टर 13 में 18:30 बजे",
+            M2Normalizer.normalize(M2Language.HINDI, input).normalized,
+        )
     }
 
     @Test
     fun identicalHindiFixtureScoresZeroError() {
-        val fixture = M2Fixtures.forLanguage(M2Language.HINDI)
+        val fixture = M2Fixtures.forLanguage(M2Language.HINDI).single()
         val score = M2Evaluation.scoreAsr(
             language = fixture.language,
-            fixtureId = fixture.id,
+            fixtureId = "${fixture.language.languageCode}-${fixture.category}",
             reference = fixture.text,
             hypothesis = fixture.text,
         )
