@@ -112,6 +112,24 @@ class M4DeliveryStore(
     }
 
     @Synchronized
+    fun hasFragment(messageId: String, index: Int): Boolean = helper.readableDatabase.query("fragments", arrayOf("idx"), "message_id = ? AND idx = ?", arrayOf(messageId, index.toString()), null, null, null, "1").use { it.moveToFirst() }
+
+    @Synchronized
+    fun persistInbox(messageId: String, payload: ByteArray, state: M4Protocol.DeliveryState) {
+        val values = ContentValues().apply { put("id", messageId); put("payload", payload); put("state", state.name); put("updated_at", System.currentTimeMillis()) }
+        helper.writableDatabase.insertWithOnConflict("inbox", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    @Synchronized
+    fun inboxState(messageId: String): M4Protocol.DeliveryState? = helper.readableDatabase.query("inbox", arrayOf("state"), "id = ?", arrayOf(messageId), null, null, null, "1").use { if (!it.moveToFirst()) null else M4Protocol.DeliveryState.valueOf(it.getString(0)) }
+
+    @Synchronized
+    fun updateInboxState(messageId: String, state: M4Protocol.DeliveryState) {
+        val values = ContentValues().apply { put("state", state.name); put("updated_at", System.currentTimeMillis()) }
+        helper.writableDatabase.update("inbox", values, "id = ?", arrayOf(messageId))
+    }
+
+    @Synchronized
     fun loadFragments(messageId: String): List<M4Protocol.Fragment> {
         val result = mutableListOf<M4Protocol.Fragment>()
         helper.readableDatabase.query("fragments", null, "message_id = ?", arrayOf(messageId), null, null, "idx ASC").use { c ->
@@ -173,13 +191,16 @@ class M4DeliveryStore(
         c.getBlob(c.getColumnIndexOrThrow("payload"))
     )
 
-    private class Database(context: Context) : SQLiteOpenHelper(context, "vani_m4.db", null, 1) {
+    private class Database(context: Context) : SQLiteOpenHelper(context, "vani_m4.db", null, 2) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE outbox(id TEXT PRIMARY KEY,destination TEXT NOT NULL,priority INTEGER NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,hop_limit INTEGER NOT NULL,copy_budget INTEGER NOT NULL,attempts INTEGER NOT NULL,state TEXT NOT NULL,payload BLOB NOT NULL)")
             db.execSQL("CREATE INDEX outbox_ready ON outbox(state,priority,expires_at)")
             db.execSQL("CREATE TABLE seen(id TEXT PRIMARY KEY,seen_at INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE inbox(id TEXT PRIMARY KEY,payload BLOB NOT NULL,state TEXT NOT NULL,updated_at INTEGER NOT NULL)")
             db.execSQL("CREATE TABLE fragments(message_id TEXT NOT NULL,idx INTEGER NOT NULL,count INTEGER NOT NULL,total_bytes INTEGER NOT NULL,payload BLOB NOT NULL,received_at INTEGER NOT NULL,PRIMARY KEY(message_id,idx))")
         }
-        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 2) db.execSQL("CREATE TABLE IF NOT EXISTS inbox(id TEXT PRIMARY KEY,payload BLOB NOT NULL,state TEXT NOT NULL,updated_at INTEGER NOT NULL)")
+        }
     }
 }
