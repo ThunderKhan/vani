@@ -154,3 +154,57 @@ Minor version: accept compatible optional extensions by policy.
 - novel cryptography;
 - preserving original voice waveform;
 - guaranteed delivery.
+
+
+## 11.1 M4 implementation status
+
+M4 now has a bounded binary candidate implementation in the m4 SemanticCodec source plus an independently implemented reference codec in ReferenceSemanticCodec.
+
+The current candidate uses:
+- fixed field order rather than a map;
+- big-endian integer encoding;
+- UTF-8 strings with u8/u16 byte lengths;
+- explicit major/minor version bytes;
+- bounded critical-field and extension counts;
+- sorted non-critical extensions by numeric extension ID;
+- explicit rejection of unknown critical extensions.
+
+This is **not yet a final protocol freeze**. The two codecs are cross-checked by tests and a deterministic vector is stored under docs/test-vectors/, but the repository's two-independent-codec freeze rule remains in force.
+
+The protected semantic payload uses AES-GCM. Relay routing metadata is separately authenticated with HMAC-SHA-256. These are established primitives; no custom cryptography is introduced.
+
+## 11.2 M4 frame
+
+The M4 frame is a bounded transport envelope around a fragment. It carries only the metadata needed for forwarding and validation:
+- frame type;
+- logical message ID;
+- destination ID;
+- priority;
+- absolute expiry timestamp;
+- authenticated routing tag;
+- declared total protected payload size;
+- hop limit;
+- copy budget;
+- fragment index/count;
+- fragment payload;
+- CRC32 for transport-corruption detection.
+
+The CRC is not a security primitive. End-to-end AES-GCM authentication remains authoritative for private content.
+
+## 11.3 M4 persistence
+
+M4 persistence is SQLite-backed and separate from the M1 SharedPreferences feasibility store. It persists:
+- outbox records;
+- inbox delivery state;
+- seen message IDs;
+- incomplete fragments.
+
+Queue count and byte budgets are enforced before insertion. Expired records are transitioned to EXPIRED; in-flight records are recovered to QUEUED after restart when their expiry has not passed.
+
+## 11.4 Expiry and clock model
+
+The current implementation carries an absolute creation time plus bounded lifetime and derives an expiry timestamp for routing/persistence. Physical clock-skew behavior is still an M4 evidence item and is not claimed solved for arbitrary unsynchronized devices.
+
+## 11.5 Security boundary
+
+Relays operate on protected payload bytes. They may inspect minimum routing metadata required to forward a message, but they do not invoke STT/TTS or decode private transcript content. Destination delivery requires successful end-to-end authentication and destination matching.
