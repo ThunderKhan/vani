@@ -9,7 +9,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.UtteranceProgressListener
-import android.speech.TextToSpeech
+import android.speech.tts.TextToSpeech
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
