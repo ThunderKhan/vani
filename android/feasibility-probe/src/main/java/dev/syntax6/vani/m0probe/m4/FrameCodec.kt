@@ -9,6 +9,7 @@ import java.util.zip.CRC32
 data class M4Frame(
     val type: M4Protocol.FrameType,
     val messageId: String,
+    val destinationId: String,
     val hopLimit: Int,
     val copyBudget: Int,
     val fragmentIndex: Int,
@@ -23,6 +24,7 @@ object M4FrameCodec {
 
     fun encode(frame: M4Frame): ByteArray {
         require(frame.messageId.isNotBlank() && frame.messageId.toByteArray().size <= MAX_MESSAGE_ID_BYTES)
+        require(frame.destinationId.isNotBlank() && frame.destinationId.toByteArray().size <= MAX_MESSAGE_ID_BYTES)
         require(frame.hopLimit in 0..M4Protocol.MAX_HOP_LIMIT)
         require(frame.copyBudget in 0..M4Protocol.MAX_COPY_BUDGET)
         require(frame.fragmentCount in 1..M4Protocol.MAX_FRAGMENT_COUNT)
@@ -37,8 +39,11 @@ object M4FrameCodec {
             d.writeShort(frame.fragmentIndex)
             d.writeShort(frame.fragmentCount)
             val id = frame.messageId.toByteArray(Charsets.UTF_8)
+            val destination = frame.destinationId.toByteArray(Charsets.UTF_8)
             d.writeByte(id.size)
             d.write(id)
+            d.writeByte(destination.size)
+            d.write(destination)
             d.writeInt(frame.payload.size)
             d.write(frame.payload)
             val crc = CRC32().apply { update(frame.payload) }.value
@@ -63,6 +68,10 @@ object M4FrameCodec {
             val idBytes = ByteArray(idLength).also(d::readFully)
             val id = idBytes.toString(Charsets.UTF_8)
             require(id.isNotBlank())
+            val destinationLength = d.readUnsignedByte()
+            require(destinationLength in 1..MAX_MESSAGE_ID_BYTES)
+            val destinationBytes = ByteArray(destinationLength).also(d::readFully)
+            val destination = destinationBytes.toString(Charsets.UTF_8)
             val length = d.readInt()
             require(length >= 0 && length <= M4Protocol.MAX_FRAME_BYTES)
             require(length <= d.available() - 4) { "declared payload exceeds frame" }
@@ -71,7 +80,7 @@ object M4FrameCodec {
             require(d.available() == 0)
             val crc = CRC32().apply { update(payload) }.value.toInt()
             require(crc == expectedCrc) { "frame CRC mismatch" }
-            return M4Frame(type, id, hop, copies, index, count, payload)
+            return M4Frame(type, id, destination, hop, copies, index, count, payload)
         }
     }
 }
