@@ -156,14 +156,14 @@ class M1Activity : Activity() {
         var firstAudio: Long? = null
         var error: String? = null
         runOnUiThread {
-            stateText.text = "State: RECEIVED · ${bytes} byte bundle"
+            stateText.text = if (message.criticalFields.isEmpty()) "State: RECEIVED · ${bytes} byte bundle" else "State: RECEIVED · CRITICAL CONTENT · ${bytes} byte bundle"
             M1Speech.speakOffline(this, message.languageTag, message.text) { result ->
                 success = result.success
                 firstAudio = result.firstAudioMillis
                 error = result.error
                 if (result.success) store.markPlayed(message.id)
                 stateText.text = if (result.success) "State: DELIVERED · PLAYED" else "State: DELIVERY_FAILED · ${result.error}"
-                metrics.text = "RX bundle=${bytes} bytes · TTS first-audio=${result.firstAudioMillis ?: -1} ms · TTS total=${result.totalMillis} ms"
+                metrics.text = "RX bundle=${bytes} bytes · safety=${message.safetyAction} · critical-fields=${message.criticalFields.size} · TTS first-audio=${result.firstAudioMillis ?: -1} ms · TTS total=${result.totalMillis} ms"
                 latch.countDown()
             }
         }
