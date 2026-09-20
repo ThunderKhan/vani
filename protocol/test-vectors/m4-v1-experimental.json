@@ -1,0 +1,26 @@
+{
+  "codec": "canonical-binary-v1-experimental",
+  "status": "experimental-not-frozen",
+  "sample": {
+    "message_id": "123e4567-e89b-12d3-a456-426614174000",
+    "conversation_id": "incident-01",
+    "source_id": "sender",
+    "destination": "receiver",
+    "created_at_epoch_millis": 1700000000000,
+    "expires_at_epoch_millis": 1700000060000,
+    "hop_limit": 4,
+    "language_tag": "hi-IN",
+    "priority": "URGENT",
+    "ack_policy": "PERSON_ACKNOWLEDGED",
+    "safety_action": "CONFIRM",
+    "transcript": "Do not enter Sector 13 before 18:30.",
+    "critical_fields": [
+      {"type":"NEGATION","value":"Do not","start":0,"end":7,"confidence":0.92},
+      {"type":"LOCATION","value":"Sector 13","start":8,"end":17,"confidence":0.82},
+      {"type":"TIME","value":"18:30","start":25,"end":30,"confidence":0.94}
+    ],
+    "copy_budget": 4
+  },
+  "canonical_hex": "56414e3401000000123e4567e89b12d3a456426614174000000b696e636964656e742d3031000673656e646572000872656365697665720000018bcfe568000000018bcfe652600401030104000568692d494e0024446f206e6f7420656e74657220536563746f72203133206265666f72652031383a33302e0300000000075c0006446f206e6f740500080011520009536563746f72203133030019001e5e000531383a3330",
+  "independent_reference": "tools/protocol_reference.py"
+}
