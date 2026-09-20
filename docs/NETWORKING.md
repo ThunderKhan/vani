@@ -70,3 +70,17 @@ At least:
 - congestion scenario;
 - disconnect/reconnect;
 - relay process restart.
+
+
+## M4 implementation boundary
+
+M4 adds an application-level delivery layer without replacing the existing M1 direct TCP feasibility transport.
+
+- M4Transport/M4RelayLink define the transport boundary for opaque frames.
+- RelayEnvelope carries only message identity, expiry, priority, remaining hop/copy budgets and protected bundle bytes.
+- ControlledFloodPolicy is bounded by hop and copy budgets and queue/expiry checks.
+- BinarySprayAndWaitPolicy splits a bounded copy budget and waits when only one copy remains unless the peer is the destination.
+- M4DeliveryStore persists outbox/inbox/relay records, seen-message IDs and incomplete fragments in SQLite.
+- Expired records are retained as truthful EXPIRED state rather than being silently converted into success or deleted before evidence can inspect the terminal state.
+
+The physical 3-device relay/store-carry-forward scenario remains deliberately untested until the final physical validation pass.
