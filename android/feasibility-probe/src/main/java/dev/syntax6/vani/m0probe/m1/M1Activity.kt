@@ -230,7 +230,7 @@ class M1Activity : Activity() {
                 if (finalResult?.acknowledged == true && finalResult.delivered) {
                     store.setState(message.id, M1DeliveryState.ACKNOWLEDGED)
                     stateText.text = "State: ACKNOWLEDGED · ${message.id}"
-                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ncritical-fields=%d\nsafety-action=%s\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, message.criticalFields.size, message.safetyAction, finalResult.transportMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
+                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ncritical-fields=%d\nsafety-action=%s\nend-to-end=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, message.criticalFields.size, message.safetyAction, finalResult.endToEndMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
                 } else {
                     store.setState(message.id, M1DeliveryState.FAILED)
                     stateText.text = "State: FAILED · peer/ACK unavailable"
