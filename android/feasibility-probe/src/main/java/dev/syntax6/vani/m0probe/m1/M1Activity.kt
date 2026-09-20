@@ -2,6 +2,7 @@ package dev.syntax6.vani.m0probe.m1
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -178,33 +179,48 @@ class M1Activity : Activity() {
         if (host.isBlank()) { hostInput.error = "Enter receiver IPv4 address"; return }
         if (text.isBlank()) { transcript.error = "Transcript is empty"; return }
         if (isValidatedInternetAvailable()) {
-            stateText.text = "State: BLOCKED · disable Internet before the judged M1 path"
+            stateText.text = "State: BLOCKED · disable Internet before the judged M1/M3 path"
             metrics.text = "No network-isolated claim recorded because validated Internet is currently available."
             return
         }
+        val assessment = try { CriticalInformationGuard.assess(text, locale) } catch (error: IllegalArgumentException) {
+            stateText.text = "State: SAFETY_ANALYSIS_FAILED"
+            metrics.text = error.message ?: "Unable to assess message safety"
+            return
+        }
+        if (assessment.action != SafetyAction.SEND) {
+            showSafetyConfirmation(host, locale, assessment)
+            return
+        }
+        transmitMessage(host, locale, assessment)
+    }
 
-        val message = M1Message(
-            languageTag = locale,
-            text = text,
-            createdElapsedNanos = System.nanoTime(),
-            source = "android-direct",
-            destination = host,
-        )
+    private fun showSafetyConfirmation(host: String, locale: String, assessment: SafetyAssessment) {
+        val fieldSummary = assessment.fields.joinToString("\n") {
+            "• ${it.type.name}: \"${it.value}\" (detector confidence ${"%.2f".format(Locale.US, it.confidence)})"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Confirm critical content")
+            .setMessage("This message contains operationally important content.\n\n$fieldSummary\n\nThe detector does not prove that the transcript is correct. Review the exact text before sending.")
+            .setPositiveButton("Send as shown") { _, _ -> transmitMessage(host, locale, assessment) }
+            .setNeutralButton("Edit first", null)
+            .setNegativeButton("Cancel") { _, _ -> stateText.text = "State: SEND_CANCELLED · safety confirmation" }
+            .show()
+    }
+
+    private fun transmitMessage(host: String, locale: String, assessment: SafetyAssessment) {
+        val message = M1Message(languageTag = locale, text = assessment.rawText, createdElapsedNanos = System.nanoTime(), source = "android-direct", destination = host, safetyAction = assessment.action, criticalFields = assessment.fields)
         val bundle = M1Bundle.encode(message)
         store.setState(message.id, M1DeliveryState.QUEUED)
-        stateText.text = "State: QUEUED · ${message.id}"
+        stateText.text = "State: QUEUED · safety=${assessment.action} · fields=${assessment.criticalFieldCount}"
         sendButton.isEnabled = false
         executor.execute {
             var result: M1Transport.SendResult? = null
             var error: Throwable? = null
             repeat(2) { attempt ->
                 if (result != null) return@repeat
-                try {
-                    result = M1Transport.send(host, bundle, message.id)
-                } catch (t: Throwable) {
-                    error = t
-                    if (attempt == 0) Thread.sleep(250)
-                }
+                try { result = M1Transport.send(host, bundle, message.id) }
+                catch (t: Throwable) { error = t; if (attempt == 0) Thread.sleep(250) }
             }
             val finalResult = result
             runOnUiThread {
@@ -214,16 +230,7 @@ class M1Activity : Activity() {
                 if (finalResult?.acknowledged == true && finalResult.delivered) {
                     store.setState(message.id, M1DeliveryState.ACKNOWLEDGED)
                     stateText.text = "State: ACKNOWLEDGED · ${message.id}"
-                    metrics.text = String.format(
-                        Locale.US,
-                        "message=%s\nbundle=%d bytes\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry",
-                        message.id,
-                        finalResult.bundleBytes,
-                        finalResult.transportMillis,
-                        finalResult.ttsFirstAudioMillis ?: "n/a",
-                        finalResult.endToEndMillis,
-                        finalResult.duplicate,
-                    )
+                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ncritical-fields=%d\nsafety-action=%s\ntransport=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, message.criticalFields.size, message.safetyAction, finalResult.transportMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
                 } else {
                     store.setState(message.id, M1DeliveryState.FAILED)
                     stateText.text = "State: FAILED · peer/ACK unavailable"
@@ -232,7 +239,6 @@ class M1Activity : Activity() {
             }
         }
     }
-
     private fun isValidatedInternetAvailable(): Boolean {
         val cm = getSystemService(ConnectivityManager::class.java)
         val caps = cm.activeNetwork?.let(cm::getNetworkCapabilities) ?: return false
