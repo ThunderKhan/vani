@@ -19,7 +19,7 @@ data class SendReceipt(val accepted: Boolean, val bytes: Int, val error: String?
 
 class M4DeliveryEngine(
     private val localNodeId: String,
-    private val store: M4DeliveryStore,
+    private val store: M4Store,
     private val codec: SemanticCodec,
     private val protector: BundleProtector,
     private val routeAuthenticator: RoutingAuthenticator,
