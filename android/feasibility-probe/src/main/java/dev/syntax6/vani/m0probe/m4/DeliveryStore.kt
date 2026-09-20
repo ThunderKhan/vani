@@ -25,6 +25,7 @@ data class QueueLimits(
     val maxMessages: Int = 256,
     val maxBytes: Long = 2L * 1024L * 1024L,
     val perOriginMaxMessages: Int = 64,
+    val terminalRetentionMillis: Long = 7L * 24L * 60L * 60L * 1000L,
 )
 
 class M4DeliveryStore(
@@ -202,6 +203,7 @@ class M4DeliveryStore(
         }
         val expired = db.update("records", values, "expires_at<=? AND state IN ('QUEUED','TRANSFERRED','RELAYED','CREATED','VALIDATED')", arrayOf(now.toString()))
         db.delete("seen_messages", "expires_at<=?", arrayOf(now.toString()))
+        db.delete("records", "state IN ('EXPIRED','FAILED','ACKNOWLEDGED_PERSON') AND updated_at<=?", arrayOf((now - limits.terminalRetentionMillis).toString()))
         db.delete("fragments", "updated_at<=?", arrayOf((now - 10 * 60_000L).toString()))
         return expired
     }
