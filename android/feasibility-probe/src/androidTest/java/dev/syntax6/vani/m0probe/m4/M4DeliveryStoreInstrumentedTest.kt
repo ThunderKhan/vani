@@ -55,7 +55,7 @@ class M4DeliveryStoreInstrumentedTest {
         val store = M4DeliveryStore(context)
         store.enqueue(stored("expired", expiresAt = 1))
         assertEquals(1, store.purgeExpired(2))
-        assertEquals(M4Protocol.DeliveryState.EXPIRED, store.nextEligible("receiver", 2)?.state ?: M4Protocol.DeliveryState.EXPIRED)
+        assertEquals(M4Protocol.DeliveryState.EXPIRED, store.state("expired"))
     }
 
     @Test fun seenMessageIsDurableAndIdempotent() {
