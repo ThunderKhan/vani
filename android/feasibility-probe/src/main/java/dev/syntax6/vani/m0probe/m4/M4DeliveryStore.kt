@@ -62,6 +62,9 @@ class M4DeliveryStore(
     }
 
     @Synchronized
+    override fun find(messageId: String): StoredBundle? = helper.readableDatabase.query("outbox", null, "id = ?", arrayOf(messageId), null, null, null, "1").use { if (!it.moveToFirst()) null else row(it) }
+
+    @Synchronized
     fun state(messageId: String): M4Protocol.DeliveryState? = helper.readableDatabase.query("outbox", arrayOf("state"), "id = ?", arrayOf(messageId), null, null, null, "1").use { if (!it.moveToFirst()) null else M4Protocol.DeliveryState.valueOf(it.getString(0)) }
 
     @Synchronized
