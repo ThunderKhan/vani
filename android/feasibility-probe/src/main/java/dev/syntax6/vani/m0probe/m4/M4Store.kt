@@ -2,6 +2,7 @@ package dev.syntax6.vani.m0probe.m4
 
 interface M4Store {
     fun enqueue(bundle: StoredBundle)
+    fun find(messageId: String): StoredBundle?
     fun nextEligible(destinationId: String?, now: Long = System.currentTimeMillis()): StoredBundle?
     fun state(messageId: String): M4Protocol.DeliveryState?
     fun updateState(messageId: String, state: M4Protocol.DeliveryState, attempts: Int? = null)
