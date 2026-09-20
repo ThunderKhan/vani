@@ -16,3 +16,5 @@ interface M4RelayLink {
 }
 
 // M4 transport boundary: concrete radio adapters remain separate from delivery semantics. Latest verification trigger.
+
+// Verification trigger after correcting legacy M1 compilation compatibility.
