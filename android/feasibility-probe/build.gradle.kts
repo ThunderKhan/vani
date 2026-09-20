@@ -17,8 +17,8 @@ android {
         applicationId = "dev.syntax6.vani.m0probe"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.1.0-m1"
+        versionCode = 3
+        versionName = "0.2.0-m4"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
     }
 
@@ -34,4 +34,5 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.7.0")
 }
