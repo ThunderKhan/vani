@@ -60,6 +60,16 @@ class M4DurableStoreInstrumentedTest {
         assertNotNull(store.get(distress.messageId))
     }
 
+    @Test fun retryBoundIsThreeAttempts() {
+        val message = message(UUID.randomUUID(), 1000L, 10_000L, M4Priority.URGENT)
+        store.enqueue(CanonicalBinaryBundleCodec().encode(message), message, now = 1000L)
+        assertTrue(store.incrementRetry(message.messageId, 1001L))
+        assertTrue(store.incrementRetry(message.messageId, 1002L))
+        assertTrue(store.incrementRetry(message.messageId, 1003L))
+        assertFalse(store.incrementRetry(message.messageId, 1004L))
+        assertEquals(3, store.get(message.messageId)!!.retries)
+    }
+
     @Test fun fragmentRecordsSurviveRestart() {
         val id = UUID.randomUUID()
         val frame = M4Frame(id, 0, 2, 4, byteArrayOf(1, 2))
