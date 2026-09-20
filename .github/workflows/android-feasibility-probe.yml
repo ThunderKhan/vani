@@ -36,4 +36,4 @@ jobs:
         with:
           gradle-version: "9.6.0"
       - name: Unit test and assemble probe
-        run: gradle :android:feasibility-probe:testDebugUnitTest :android:feasibility-probe:assembleDebug --stacktrace
+        run: gradle :android:feasibility-probe:testDebugUnitTest :android:feasibility-probe:assembleDebug :android:feasibility-probe:assembleDebugAndroidTest --stacktrace
