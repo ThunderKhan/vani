@@ -3,7 +3,6 @@ package dev.syntax6.vani.m0probe.m1
 import android.content.Context
 import java.util.UUID
 
-/** Explicit sender states required by the M1 delivery contract. */
 enum class M1DeliveryState { QUEUED, TRANSFERRED, DELIVERED, ACKNOWLEDGED, FAILED }
 
 data class M1Message(
@@ -16,6 +15,8 @@ data class M1Message(
     val priority: Int = 0,
     val expiresAfterMillis: Long = 60_000L,
     val ackPolicy: String = "playback",
+    val safetyAction: SafetyAction = SafetyAction.SEND,
+    val criticalFields: List<CriticalField> = emptyList(),
 )
 
 class M1DeliveryStore(context: Context) {
