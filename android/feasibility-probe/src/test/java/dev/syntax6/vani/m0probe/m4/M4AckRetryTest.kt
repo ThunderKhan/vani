@@ -24,7 +24,7 @@ class M4AckRetryTest {
         val bytes = M4AcknowledgementCodec.encode(
             M4Acknowledgement("m", M4Protocol.DeliveryState.DELIVERED_DEVICE, "d", 1)
         ).copyOf()
-        bytes[bytes.indexOfLast { it == M4Protocol.DeliveryState.DELIVERED_DEVICE.ordinal.toByte() }] = 99
+        bytes[6] = 99
         runCatching { M4AcknowledgementCodec.decode(bytes) }.also { assertTrue(it.isFailure) }
     }
 }
