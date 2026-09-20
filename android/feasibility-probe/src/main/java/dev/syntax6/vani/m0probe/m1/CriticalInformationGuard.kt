@@ -26,11 +26,13 @@ data class SafetyAssessment(
 }
 
 object CriticalInformationGuard {
-    private val negation = Regex("""(?i)\b(no|not|don't|dont|do not|never|without|avoid|cannot|can't|cannot|नहीं|मत|न)\b""")
+    private val negation = Regex("""(?i)\b(no|not|don't|dont|do not|never|without|avoid|cannot|can't)\b""")
+    private val hindiNegation = Regex("""(?<!\p{L})(नहीं|मत|न)(?!\p{L})""")
     private val number = Regex("""(?<![\p{L}\d])(?:\d+(?:[.,]\d+)?|[०-९]+(?:[.,][०-९]+)?)(?![\p{L}\d])""")
     private val coordinate = Regex("""(?i)(?<!\w)[+-]?\d+(?:\.\d+)?\s*[,°]\s*[+-]?\d+(?:\.\d+)?(?!\w)""")
     private val time = Regex("""(?i)\b(?:[01]?\d|2[0-3])[:.]\d{2}\s*(?:am|pm)?\b|\b(?:\d{1,2})\s*(?:am|pm)\b""")
-    private val emergency = Regex("""(?i)\b(sos|mayday|emergency|urgent|distress|help|evacuate|evacuation|danger|fire|flood|rescue|hospital|ambulance|बचाओ|आपातकाल|खतरा|आग|बाढ़|मदद|निकासी)\b""")
+    private val emergency = Regex("""(?i)\b(sos|mayday|emergency|urgent|distress|help|evacuate|evacuation|danger|fire|flood|rescue|hospital|ambulance)\b""")
+    private val hindiEmergency = Regex("""(?<!\p{L})(बचाओ|आपातकाल|खतरा|आग|बाढ़|मदद|निकासी)(?!\p{L})""")
     private val quantity = Regex("""(?i)\b\d+(?:\.\d+)?\s*(?:kg|g|mg|l|ml|km|m|cm|mm|units?|people|persons?|litres?|meters?|metres?)\b""")
     private val location = Regex("""(?i)\b(?:sector|zone|checkpoint|camp|base|village|town|road|street|station|gate|room|block)\s+[\p{L}\d-]+\b""")
 
