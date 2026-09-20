@@ -22,3 +22,16 @@ No unlimited flooding.
 
 ## D007 — Offline speech models are independently verified per language
 No blanket multilingual support claim.
+
+
+## D008 — M4 codec remains experimental until independent agreement
+A deterministic compact binary codec is implemented behind an abstraction with a Kotlin test vector and independent Python reference encoder. The byte-level format is not frozen until independent codec agreement passes.
+
+## D009 — SQLite replaces M1 SharedPreferences for durable delivery
+M1's SharedPreferences duplicate marker remains part of the disposable feasibility path. M4 uses a transactional SQLite delivery store for outbox/inbox/relay records, replay state, and fragments.
+
+## D010 — Relay metadata is separated from protected content
+Relays operate on an opaque protected bundle plus bounded routing metadata. They do not need STT/TTS or plaintext semantic content to forward a message.
+
+## D011 — Routing is policy-driven and bounded
+Controlled flooding and binary Spray-and-Wait are explicit routing policies with hop, copy, expiry, queue, duplicate and priority constraints. No unlimited flood is permitted.
