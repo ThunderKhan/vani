@@ -35,6 +35,14 @@ class M4ProtocolTest {
         assertEquals(expected, CanonicalBinarySemanticCodec.encode(bundle()).joinToString("") { "%02x".format(it) })
     }
 
+    @Test fun independentCodecsProduceIdenticalCanonicalBytes() {
+        val first = CanonicalBinarySemanticCodec.encode(bundle())
+        val second = ReferenceSemanticCodec.encode(bundle())
+        assertArrayEquals(first, second)
+        assertEquals(bundle(), ReferenceSemanticCodec.decode(first))
+        assertEquals(bundle(), CanonicalBinarySemanticCodec.decode(second))
+    }
+
     @Test fun unicodeRoundTripIsExact() {
         val original = bundle("தமிழ் • VĀṆI")
         assertEquals(original, CanonicalBinarySemanticCodec.decode(CanonicalBinarySemanticCodec.encode(original)))
