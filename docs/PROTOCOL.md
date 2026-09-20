@@ -154,3 +154,19 @@ Minor version: accept compatible optional extensions by policy.
 - novel cryptography;
 - preserving original voice waveform;
 - guaranteed delivery.
+
+
+## 16. M4 implementation decisions
+
+The repository now contains an experimental byte-level implementation behind the SemanticBundleCodec interface.
+
+- Current experimental codec: deterministic fixed-order binary fields, UTF-8 strings, explicit major/minor version bytes.
+- Current bounds: 4 KiB transcript, 32 critical fields, 8 KiB logical bundle, 16 hops, 128 fragments, bounded retries/copies.
+- Lifetime is represented with sender creation and expiry epoch milliseconds. Physical clock-skew behavior remains an evidence item; relays additionally carry a bounded remaining-hop/copy envelope.
+- Framing uses a bounded binary frame with message UUID, fragment index/count, total logical length, payload length and CRC32.
+- The logical bundle is authenticated/encrypted separately from relay metadata. AES-GCM is used through the platform cryptographic provider; no custom cipher is introduced.
+- Relay forwarding operates on opaque protected payloads and bounded routing metadata. Relays do not need speech models or plaintext access.
+- The codec is explicitly experimental/not frozen. A Python reference encoder and Kotlin implementation share a deterministic test vector, but the protocol is not considered byte-level frozen until independent codec agreement satisfies the specification.
+- Unknown major versions and unknown critical enum values are rejected safely.
+
+The M4 implementation therefore makes the protocol concrete enough for deterministic testing without silently declaring the final wire format frozen.
