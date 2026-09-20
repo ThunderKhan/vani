@@ -2,7 +2,7 @@ package dev.syntax6.vani.m0probe.m4
 
 import dev.syntax6.vani.m0probe.m1.CriticalField
 import dev.syntax6.vani.m0probe.m1.CriticalFieldType
-import dev.syntax6.vani.m1.SafetyAction
+import dev.syntax6.vani.m0probe.m1.SafetyAction
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
