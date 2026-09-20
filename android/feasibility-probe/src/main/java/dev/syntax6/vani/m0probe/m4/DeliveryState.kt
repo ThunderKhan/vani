@@ -1,0 +1,7 @@
+package dev.syntax6.vani.m4
+
+enum class DeliveryState {
+    CREATED, VALIDATED, QUEUED, TRANSFERRED, RELAYED, DELIVERED_DEVICE, PLAYBACK_STARTED, ACKNOWLEDGED_PERSON, EXPIRED, FAILED
+}
+
+enum class Direction { OUTBOX, INBOX, RELAY }
