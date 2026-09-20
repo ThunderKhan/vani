@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 2
-        versionName = "0.1.0-m1"
+        versionName = "0.1.0-m4"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
     }
 
@@ -34,4 +34,7 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }
