@@ -47,7 +47,7 @@ class M4DeliveryEngine(
     }
 
     fun framesFor(messageId: String, maxFragmentPayload: Int): List<ByteArray> {
-        val stored = store.nextEligible(null)?.takeIf { it.messageId == messageId }
+        val stored = store.find(messageId)?.takeIf { it.state == M4Protocol.DeliveryState.QUEUED || it.state == M4Protocol.DeliveryState.RELAYED }
             ?: error("message is not currently eligible")
         val fragments = M4Fragmenter.split(messageId, stored.payload, maxFragmentPayload)
         return fragments.map { fragment ->
