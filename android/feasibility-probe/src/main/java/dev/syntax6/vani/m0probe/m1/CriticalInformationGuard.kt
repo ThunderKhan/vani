@@ -39,12 +39,14 @@ object CriticalInformationGuard {
         val normalized = normalize(text)
         val fields = buildList {
             addMatches(normalized, negation, CriticalFieldType.NEGATION, 0.92)
+            addMatches(normalized, hindiNegation, CriticalFieldType.NEGATION, 0.92)
             addMatches(normalized, coordinate, CriticalFieldType.COORDINATE, 0.96)
             addMatches(normalized, quantity, CriticalFieldType.QUANTITY, 0.95)
             addMatches(normalized, time, CriticalFieldType.TIME, 0.94)
             addMatches(normalized, number, CriticalFieldType.NUMBER, 0.88)
             addMatches(normalized, location, CriticalFieldType.LOCATION, 0.82)
             addMatches(normalized, emergency, CriticalFieldType.EMERGENCY_TERM, 0.90)
+            addMatches(normalized, hindiEmergency, CriticalFieldType.EMERGENCY_TERM, 0.90)
         }.distinctBy { Triple(it.type, it.start, it.end) }.sortedBy { it.start }
 
         val reasons = mutableListOf<String>()
