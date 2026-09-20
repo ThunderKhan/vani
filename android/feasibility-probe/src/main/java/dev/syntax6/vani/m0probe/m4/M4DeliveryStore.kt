@@ -62,6 +62,9 @@ class M4DeliveryStore(
     }
 
     @Synchronized
+    fun state(messageId: String): M4Protocol.DeliveryState? = helper.readableDatabase.query("outbox", arrayOf("state"), "id = ?", arrayOf(messageId), null, null, null, "1").use { if (!it.moveToFirst()) null else M4Protocol.DeliveryState.valueOf(it.getString(0)) }
+
+    @Synchronized
     fun updateState(messageId: String, state: M4Protocol.DeliveryState, attempts: Int? = null) {
         val values = ContentValues().apply {
             put("state", state.name)
