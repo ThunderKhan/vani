@@ -15,4 +15,4 @@ interface M4RelayLink {
     fun forward(peer: PeerId, frames: List<ByteArray>): TransferReceipt
 }
 
-// M4 transport boundary: concrete radio adapters remain separate from delivery semantics.
+// M4 transport boundary: concrete radio adapters remain separate from delivery semantics. Latest verification trigger.
