@@ -60,3 +60,25 @@
 ## Regression policy
 
 Any discovered protocol or safety bug gets a regression test where practical.
+
+
+## M4 code-level coverage
+
+The M4 test suite now covers:
+
+- malformed frames and protocol versions;
+- oversized bundles and frame lengths;
+- deterministic canonical encoding/test vectors;
+- Unicode and metadata round-trip;
+- fragment bounds, missing fragments, duplicate fragments and out-of-order reassembly;
+- replay and duplicate suppression policy;
+- expiry;
+- queue eviction, queue bounds and retry limits;
+- restart persistence of queued records, seen-message IDs and fragments;
+- hop-limit and copy-budget routing;
+- controlled flooding and binary Spray-and-Wait;
+- ACK/message-ID correlation;
+- authenticated encryption tamper rejection;
+- relay envelope bounds and content-blind forwarding metadata.
+
+An Android instrumentation test exercises the SQLite durability path. Physical relay, store-carry-forward, radio, Android lifecycle and multi-device tests remain intentionally deferred.
