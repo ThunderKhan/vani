@@ -61,6 +61,13 @@ class M4PureTest {
         CanonicalBinaryBundleCodec().decode(bytes)
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun unknownFieldCodeRejected() {
+        val bytes = CanonicalBinaryBundleCodec().encode(bundle).copyOf()
+        bytes[121] = 99
+        CanonicalBinaryBundleCodec().decode(bytes)
+    }
+
     @Test fun tamperingFailsAuthentication() {
         val protector = AesGcmMessageProtector(AesGcmMessageProtector.testKey())
         val envelope = protector.protect(CanonicalBinaryBundleCodec().encode(bundle))
