@@ -163,3 +163,14 @@ Optional low-rate bridge with the same semantic bundle.
 5. All timers use monotonic elapsed time where wall-clock trust is unnecessary.
 6. Unknown protocol versions fail safely.
 7. Every measured latency stage has explicit start/end markers.
+
+
+## M4 delivery architecture
+
+M4 introduces an explicit delivery layer between semantic bundles and concrete transports. Its boundaries are:
+
+SemanticBundleCodec -> MessageProtector -> bounded framing/fragmentation -> durable delivery store -> RoutingPolicy -> M4Transport/M4RelayLink.
+
+Relays operate on RelayEnvelope metadata plus an opaque protected payload. They do not invoke STT/TTS and do not interpret speech content. The existing M1 direct TCP path remains a feasibility transport and is not relabelled as the final mesh.
+
+The durable store owns outbox/inbox/relay persistence, replay state, fragment recovery, expiry and bounded queue policy. Routing owns forwarding decisions; transport adapters only move framed bytes and report transfer acceptance.
