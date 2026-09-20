@@ -58,6 +58,7 @@ class M4DeliveryEngine(
                 priority = stored.priority,
                 expiresAtEpochMillis = stored.expiresAt,
                 routingTag = ByteArray(32),
+                totalBytes = stored.payload.size,
                 hopLimit = stored.hopLimit,
                 copyBudget = stored.copyBudget,
                 fragmentIndex = fragment.fragmentIndex,
@@ -80,7 +81,7 @@ class M4DeliveryEngine(
             return ReceiveResult.Duplicate
         }
         store.saveFragment(
-            M4Protocol.Fragment(frame.messageId, frame.fragmentIndex, frame.fragmentCount, inferTotalBytes(frame), frame.payload)
+            M4Protocol.Fragment(frame.messageId, frame.fragmentIndex, frame.fragmentCount, frame.totalBytes, frame.payload)
         )
         val fragments = store.loadFragments(frame.messageId)
         val reassembler = FragmentReassembler()
@@ -149,11 +150,6 @@ class M4DeliveryEngine(
         return ReceiveResult.Relayed(decision)
     }
 
-    private fun inferTotalBytes(frame: M4Frame): Int {
-        // Total protected size is recovered from all fragments. The fragment table retains each payload.
-        // The bound is enforced by FragmentReassembler; this value is the per-message declared bound used by the durable table.
-        return minOf(M4Protocol.MAX_REASSEMBLY_BYTES, frame.fragmentCount * frame.payload.size)
-    }
 
     sealed interface ReceiveResult {
         data object FragmentStored : ReceiveResult
