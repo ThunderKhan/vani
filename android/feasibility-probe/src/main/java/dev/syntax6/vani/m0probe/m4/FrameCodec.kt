@@ -13,6 +13,7 @@ data class M4Frame(
     val priority: M4Protocol.Priority,
     val expiresAtEpochMillis: Long,
     val routingTag: ByteArray,
+    val totalBytes: Int,
     val hopLimit: Int,
     val copyBudget: Int,
     val fragmentIndex: Int,
@@ -30,6 +31,7 @@ object M4FrameCodec {
         require(frame.destinationId.isNotBlank() && frame.destinationId.toByteArray().size <= MAX_MESSAGE_ID_BYTES)
         require(frame.expiresAtEpochMillis >= 0)
         require(frame.routingTag.size == 32)
+        require(frame.totalBytes in 1..M4Protocol.MAX_REASSEMBLY_BYTES)
         require(frame.hopLimit in 0..M4Protocol.MAX_HOP_LIMIT)
         require(frame.copyBudget in 0..M4Protocol.MAX_COPY_BUDGET)
         require(frame.fragmentCount in 1..M4Protocol.MAX_FRAGMENT_COUNT)
@@ -52,6 +54,7 @@ object M4FrameCodec {
             d.writeByte(frame.priority.wire)
             d.writeLong(frame.expiresAtEpochMillis)
             d.write(frame.routingTag)
+            d.writeInt(frame.totalBytes)
             d.writeInt(frame.payload.size)
             d.write(frame.payload)
             val crc = CRC32().apply { update(frame.payload) }.value
@@ -83,6 +86,8 @@ object M4FrameCodec {
             val priority = M4Protocol.Priority.values().firstOrNull { it.wire == d.readUnsignedByte() } ?: error("unknown frame priority")
             val expiresAt = d.readLong()
             val routingTag = ByteArray(32).also(d::readFully)
+            val totalBytes = d.readInt()
+            require(totalBytes in 1..M4Protocol.MAX_REASSEMBLY_BYTES)
             val length = d.readInt()
             require(length >= 0 && length <= M4Protocol.MAX_FRAME_BYTES)
             require(length <= d.available() - 4) { "declared payload exceeds frame" }
@@ -91,7 +96,7 @@ object M4FrameCodec {
             require(d.available() == 0)
             val crc = CRC32().apply { update(payload) }.value.toInt()
             require(crc == expectedCrc) { "frame CRC mismatch" }
-            return M4Frame(type, id, destination, priority, expiresAt, routingTag, hop, copies, index, count, payload)
+            return M4Frame(type, id, destination, priority, expiresAt, routingTag, totalBytes, hop, copies, index, count, payload)
         }
     }
 }
