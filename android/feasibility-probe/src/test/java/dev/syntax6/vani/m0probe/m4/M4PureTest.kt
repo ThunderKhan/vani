@@ -98,5 +98,29 @@ class M4PureTest {
         assertThrows(IllegalArgumentException::class.java) { AckCorrelator.accept(id, good.copy(authenticated = false)) }
     }
 
+    @Test fun reassemblyRejectsConflictingDuplicateAndOverBudgetMessages() {
+        val first = M4FrameCodec.encode(M4Frame(id, 0, 2, 4, byteArrayOf(1, 2)))
+        val conflicting = M4FrameCodec.encode(M4Frame(id, 0, 2, 4, byteArrayOf(9, 9)))
+        val reassembler = FragmentReassembler(maxPendingMessages = 1)
+        assertNull(reassembler.accept(first))
+        assertThrows(IllegalArgumentException::class.java) { reassembler.accept(conflicting) }
+        val secondId = UUID.randomUUID()
+        val other = M4FrameCodec.encode(M4Frame(secondId, 0, 2, 4, byteArrayOf(3, 4)))
+        assertThrows(IllegalArgumentException::class.java) { reassembler.accept(other) }
+    }
+
+    @Test fun authenticatedRelayRejectsTampering() {
+        val key = javax.crypto.spec.SecretKeySpec(ByteArray(32) { (it + 1).toByte() }, "HmacSHA256")
+        val codec = AuthenticatedRelayEnvelopeCodec(key)
+        val envelope = RelayEnvelope(id, System.currentTimeMillis() + 60_000L, 3, 2,
+            M4Priority.ROUTINE, byteArrayOf(1, 2, 3))
+        val wire = codec.encode(envelope)
+        val decoded = codec.decode(wire)
+        assertEquals(envelope.messageId, decoded.messageId)
+        val tampered = wire.copyOf()
+        tampered[tampered.lastIndex] = (tampered.last().toInt() xor 1).toByte()
+        assertThrows(IllegalArgumentException::class.java) { codec.decode(tampered) }
+    }
+
     private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
 }
