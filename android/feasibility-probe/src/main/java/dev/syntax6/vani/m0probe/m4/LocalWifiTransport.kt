@@ -136,6 +136,12 @@ class M4LocalWifiTransport : M4Transport {
                     part.all(Char::isDigit) && (part.toIntOrNull()?.let { it in 0..255 } == true)
             }) { "manual local peer must be a numeric IPv4 address" }
             require(host != "0.0.0.0" && host != "255.255.255.255") { "invalid peer address" }
+            val partsNumeric = parts.map { it.toInt() }
+            val first = partsNumeric[0]
+            val second = partsNumeric[1]
+            val siteLocal = first == 10 || (first == 172 && second in 16..31) ||
+                (first == 192 && second == 168) || (first == 169 && second == 254)
+            require(siteLocal) { "only RFC1918 or link-local IPv4 peers are supported" }
         }
 
         private fun validateFrames(frames: List<ByteArray>) {
