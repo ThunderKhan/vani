@@ -17,6 +17,7 @@ object M1Transport {
     private const val HASH_BYTES = 32
     private const val CONNECT_TIMEOUT_MS = 4_000
     private const val READ_TIMEOUT_MS = 8_000
+    private const val PLAYBACK_ACK_TIMEOUT_MS = 15_000
 
     data class SendResult(
         val messageId: String,
@@ -37,7 +38,7 @@ object M1Transport {
         val start = System.nanoTime()
         Socket().use { socket ->
             socket.connect(InetSocketAddress(host, PORT), CONNECT_TIMEOUT_MS)
-            socket.soTimeout = READ_TIMEOUT_MS
+            // Receiver may spend up to 12 seconds awaiting local speech synthesis.\n            socket.soTimeout = PLAYBACK_ACK_TIMEOUT_MS
             val out = DataOutputStream(socket.getOutputStream().buffered())
             val input = DataInputStream(socket.getInputStream().buffered())
             out.writeInt(MAGIC)
