@@ -6,6 +6,7 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.UUID
+import java.util.concurrent.Semaphore
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -51,6 +52,7 @@ class M4LocalWifiTransport : M4Transport {
 
     class Server(private val onCompleteBundle: (ByteArray) -> Boolean) {
         private val running = AtomicBoolean(false)
+        private val permits = Semaphore(4)
         @Volatile private var serverSocket: ServerSocket? = null
 
         fun start(executor: ExecutorService) {
@@ -61,7 +63,13 @@ class M4LocalWifiTransport : M4Transport {
                         serverSocket = server
                         while (running.get()) {
                             val client = server.accept()
-                            executor.execute { handle(client) }
+                            if (!permits.tryAcquire()) {
+                                client.close()
+                                continue
+                            }
+                            executor.execute {
+                                try { handle(client) } finally { permits.release() }
+                            }
                         }
                     }
                 } catch (_: java.io.IOException) {

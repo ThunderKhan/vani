@@ -226,6 +226,24 @@ class M4DeliveryStore(
         }
     }
 
+    /**
+     * Most recently changed local ciphertext metadata. The UI never receives
+     * plaintext from persistence; decryption needs an explicitly provided key.
+     */
+    @Synchronized
+    fun history(limit: Int = 100, now: Long = System.currentTimeMillis()): List<DeliveryRecord> {
+        require(limit in 1..200) { "history limit must be 1..200" }
+        expire(now)
+        return db.rawQuery(
+            "SELECT id,direction,state,bundle,source_id,destination,priority,expires_at," +
+                "hop_limit,copy_budget,retries,updated_at FROM records " +
+                "ORDER BY updated_at DESC LIMIT ?",
+            arrayOf(limit.toString())
+        ).use { cursor ->
+            buildList { while (cursor.moveToNext()) add(record(cursor)) }
+        }
+    }
+
     @Synchronized
     fun incrementRetry(id: UUID, now: Long = System.currentTimeMillis()): Boolean =
         db.transaction {
