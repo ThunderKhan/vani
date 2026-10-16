@@ -677,6 +677,12 @@ class VaniFieldActivity : Activity() {
             "A service being exposed does not prove offline model support.") {
             startActivity(Intent(this, M2Activity::class.java))
         }
+        toolCard(col, "Delivery evidence", "View measured local queue state and export redacted metrics, never fabricated WER/latency results.") {
+            startActivity(Intent(this, M5DiagnosticsActivity::class.java))
+        }
+        toolCard(col, "Legacy voice-loop probe", "Open the existing M1 direct transport and platform speech feasibility test.") {
+            startActivity(Intent(this, dev.syntax6.vani.m0probe.m1.M1Activity::class.java))
+        }
         toolCard(col, "Protocol diagnostics", "Access the separate M4 direct-link experiment, replay and fragmentation tooling.") {
             startActivity(Intent(this, M4DirectActivity::class.java))
         }
