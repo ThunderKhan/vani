@@ -21,8 +21,7 @@ class M4DeliveryEngine(
         val plaintext = protector?.unprotect(bytes) ?: bytes
         val message = codec.decode(plaintext)
         message.validate(now)
-        check(store.markSeenIfNew(message.messageId, message.expiresAtEpochMillis, now)) { "duplicate or replayed message" }
-        store.persistReceived(bytes, message, now)
+        check(store.persistReceivedIfNew(bytes, message, now)) { "duplicate or replayed message" }
         return message
     }
 
