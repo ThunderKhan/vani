@@ -79,7 +79,7 @@ class M4DirectActivity : Activity() {
         ownId = edit("Local device ID, e.g. phone-a")
         destId = edit("Recipient device ID, e.g. phone-b")
         remoteIp = edit("Recipient numeric IPv4 address")
-        sharedKey = edit("Shared 64-character hex AES key (never stored)")
+        sharedKey = edit("Shared 64-character hex AES key (never stored)").apply {\n            inputType = android.text.InputType.TYPE_CLASS_TEXT or\n                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD\n        }
         root.addView(ownId)
         root.addView(destId)
         root.addView(remoteIp)
@@ -277,7 +277,7 @@ class M4DirectActivity : Activity() {
                 source = own,
                 destination = dest,
                 safetyAction = assessment.action,
-                criticalFields = assessment.fields,
+                expiresAfterMillis = 3_600_000L, // One-hour bounded store-carry-forward window.\n                criticalFields = assessment.fields,
             )
             val bundle = M4ProtocolAdapter.fromM1(m1, now).copy(
                 hopLimit = 1, copyBudget = 1, ackPolicy = M4AckPolicy.DEVICE_RECEIVED,
