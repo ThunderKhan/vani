@@ -99,6 +99,45 @@ class M4DeliveryStore(
         }
     }
 
+
+    /**
+     * Atomically reserve a replay ID and persist the authenticated destination payload.
+     * A failed write must roll back the seen marker so a later retry remains possible.
+     */
+    @Synchronized
+    fun persistReceivedIfNew(bundle: ByteArray, message: SemanticBundle, now: Long = System.currentTimeMillis()): Boolean {
+        message.validate(now)
+        require(bundle.size in 1..M4_MAX_BUNDLE_BYTES) { "bundle exceeds store bound" }
+        return db.transaction {
+            cleanupLocked(now)
+            val seen = ContentValues().apply {
+                put("id", message.messageId.toString())
+                put("expires_at", message.expiresAtEpochMillis)
+            }
+            if (insertWithOnConflict("seen_messages", null, seen, SQLiteDatabase.CONFLICT_IGNORE) == -1L) {
+                return@transaction false
+            }
+            val record = ContentValues().apply {
+                put("id", message.messageId.toString())
+                put("direction", Direction.INBOX.name)
+                put("state", DeliveryState.DELIVERED_DEVICE.name)
+                put("bundle", bundle)
+                put("source_id", message.sourceId)
+                put("destination", message.destination)
+                put("priority", message.priority.wire)
+                put("expires_at", message.expiresAtEpochMillis)
+                put("hop_limit", message.hopLimit)
+                put("copy_budget", message.copyBudget)
+                put("retries", 0)
+                put("updated_at", now)
+            }
+            check(insertWithOnConflict("records", null, record, SQLiteDatabase.CONFLICT_IGNORE) != -1L) {
+                "inbox record could not be inserted"
+            }
+            true
+        }
+    }
+
     @Synchronized
     fun transition(id: UUID, next: DeliveryState, now: Long = System.currentTimeMillis()) {
         db.transaction {
