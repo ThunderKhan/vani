@@ -20,6 +20,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".ui.M5DiagnosticsActivity" android:exported="false" />
         <activity android:name=".m1.M1Activity" android:exported="false" />
         <activity android:name=".m2.M2Activity" android:exported="false" />
         <activity android:name=".m4.M4DirectActivity" android:exported="false" />
