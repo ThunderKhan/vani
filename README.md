@@ -1,4 +1,4 @@
-# Syntax6 MeshVoice — SIH 2026 / SIH26173
+# Vāṇī — SIH 2026 / SIH26173
 
 > **Offline multilingual semantic voice communication for infrastructure-denied environments.**
 
@@ -77,6 +77,20 @@ Older `Phase 0`–`Phase 6` wording refers to the same M0–M6 sequence and shou
 4. Accepted repository specifications and ADRs.
 5. Planning/context documents.
 6. Secondary sources.
+
+## Field interface alpha (integration branch)
+
+The current Android product launcher uses an original, high-contrast field
+communications UI with Inbox, Speak/Send, Links and Tools. It supports manually
+addressed encrypted M4 local Wi-Fi and paired Bluetooth Classic frame transfer.
+These are **implementation claims only**, pending final physical verification.
+A Bluetooth Classic direct link is not a BLE mesh or multi-hop demonstration.
+Android on-device speech providers remain an experimental research path; no
+claim of independently verified ten-language open-source speech-model support
+is made.
+
+Read `docs/FIELD_UI_DESIGN.md` for source/UI provenance and
+`docs/FIELD_DEVICE_RUNBOOK.md` for the deferred physical trial sequence.
 
 ## First engineering objective
 
