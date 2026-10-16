@@ -7,15 +7,16 @@
 
     <application
         android:allowBackup="false"
-        android:label="VĀṆI M1 Offline Loop"
+        android:label="VĀṆI Offline Communications"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <activity android:name=".M1Activity" android:exported="true">
+        <activity android:name=".m1.M1Activity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".m2.M2Activity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="false" />
     </application>
 </manifest>
