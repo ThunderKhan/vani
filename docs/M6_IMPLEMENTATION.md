@@ -58,3 +58,8 @@ onboarding; lifecycle-safe background receiving; real performance and physical
 human-comprehension evidence; safety/priority authorization and final UX
 validation. A working Bluetooth Classic direct carrier does not satisfy BLE
 mesh/multi-hop evidence. No new physical testing was performed.
+
+Urgent receipt opt-in added with Android channel/runtime permission, redacted
+notification body, user setting and process-local alert rate limiting. This
+is not guaranteed presentation under OS policies, not forced-volume speech,
+and not privileged distress broadcast authorization.
