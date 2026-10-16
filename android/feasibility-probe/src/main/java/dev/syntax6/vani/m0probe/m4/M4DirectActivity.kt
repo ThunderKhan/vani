@@ -103,6 +103,7 @@ class M4DirectActivity : Activity() {
         hostButton = button("Start authenticated receiver") { toggleHost() }
         root.addView(hostButton)
         root.addView(button("Queue and transfer protected message") { sendMessage() })
+        root.addView(button("Retry durable queued bundles (same IDs)") { retryQueued() })
         status = label("Not connected. No messages received.", 13f).apply {
             setTextIsSelectable(true)
             setPadding(0, 18, 0, 8)
@@ -196,6 +197,56 @@ class M4DirectActivity : Activity() {
         }.also { it.start(executor) }
         hostButton.text = "Stop authenticated receiver"
         status.text = "Listening on local TCP ${M4LocalWifiTransport.PORT}. Key exists only in memory."
+    }
+
+    /**
+     * Manual store/carry/forward retry: the encrypted durable bundle and message ID
+     * are reused after a contact becomes available. This is not automatic discovery.
+     */
+    private fun retryQueued() {
+        val peer = remoteIp.text.toString().trim()
+        if (peer.isBlank()) {
+            remoteIp.error = "Enter the currently reachable peer IPv4 address"
+            return
+        }
+        status.text = "Checking durable outbox. Receiver contact must already exist."
+        executor.execute {
+            try {
+                val pending = store.pending(Direction.OUTBOX)
+                    .filter { it.state == DeliveryState.QUEUED }
+                var accepted = 0
+                var rejected = 0
+                var exhausted = 0
+                for (record in pending) {
+                    if (!store.incrementRetry(record.messageId)) {
+                        store.transition(record.messageId, DeliveryState.FAILED)
+                        exhausted++
+                        continue
+                    }
+                    try {
+                        val frames = M4FrameCodec.fragment(record.messageId, record.bundle)
+                        val receipt = M4LocalWifiTransport().send(PeerId(peer), frames)
+                        if (receipt.accepted) {
+                            store.transition(record.messageId, DeliveryState.TRANSFERRED)
+                            accepted++
+                        } else rejected++
+                    } catch (_: Exception) {
+                        rejected++
+                    }
+                }
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        status.text = "Retried ${pending.size} durable queued IDs: " +
+                            "peer accepted=$accepted, no peer receipt=$rejected, " +
+                            "retry limit exhausted=$exhausted. No human ACK implied."
+                    }
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) status.text = "Retry failed: ${error.message}"
+                }
+            }
+        }
     }
 
     private fun sendMessage() {
