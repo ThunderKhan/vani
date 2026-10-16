@@ -22,6 +22,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import dev.syntax6.vani.m0probe.m2.M2Activity
 import dev.syntax6.vani.m0probe.m2.M2Language
+import dev.syntax6.vani.m0probe.m4.M4DirectActivity
 import dev.syntax6.vani.m0probe.MainActivity
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
@@ -75,6 +76,9 @@ class M1Activity : Activity() {
         })
         root.addView(button("Ten-language capability / M2").apply {
             setOnClickListener { startActivity(Intent(this@M1Activity, M2Activity::class.java)) }
+        })
+        root.addView(button("M4 authenticated direct-link diagnostic").apply {
+            setOnClickListener { startActivity(Intent(this@M1Activity, M4DirectActivity::class.java)) }
         })
 
         stateText = text("State: IDLE").apply { setPadding(0, 12, 0, 8) }
