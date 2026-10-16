@@ -80,7 +80,7 @@ class M2Activity : Activity() {
             setSingleLine(false)
         }
         root.addView(transcript)
-        root.addView(button("Start offline ASR").apply { setOnClickListener { startAsr() } })
+        root.addView(button("Attempt on-device ASR (research)").apply { setOnClickListener { startAsr() } })
 
         speakText = EditText(this).apply {
             hint = "Text to synthesize"
@@ -88,7 +88,7 @@ class M2Activity : Activity() {
             setText(M2Fixtures.forLanguage(M2Language.ENGLISH).first().text)
         }
         root.addView(speakText)
-        root.addView(button("Speak selected language offline").apply { setOnClickListener { speakSelected() } })
+        root.addView(button("Attempt device-local TTS (research)").apply { setOnClickListener { speakSelected() } })
 
         results = label("No M2 capability results yet.", 13f).apply {
             setPadding(0, 16, 0, 8)
@@ -166,7 +166,7 @@ class M2Activity : Activity() {
         tts = M2Speech.speak(this, language, M2Normalizer.scoringText(language, text)) { result ->
             runOnUiThread {
                 status.text = if (result.success) {
-                    "TTS completed · first audio=${result.firstAudioMillis ?: -1} ms · total=${result.totalMillis} ms"
+                    "TTS completed · first generated audio=${result.firstAudioMillis ?: -1} ms · total=${result.totalMillis} ms"
                 } else {
                     "TTS failed · ${result.error ?: "unknown error"}"
                 }
