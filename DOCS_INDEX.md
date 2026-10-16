@@ -75,3 +75,11 @@
 - `protocol/test-vectors/README.md`
 - `tools/m0_validate.py`
 - `tests/test_m0_validate.py`
+
+## 17 October 2026 implementation integration
+
+- `docs/IMPLEMENTATION_AUDIT_2026-10-17.md` — current M0–M6 code versus evidence gap.
+- `docs/M2_STATUS.md` — previously diverged M2 branch recovered into integration branch.
+- `docs/M4_IMPLEMENTATION.md` — new authenticated direct-link diagnostic and remaining BLE/mesh gaps.
+- `docs/M5_IMPLEMENTATION.md` and `experiments/m5/README.md` — scoring code and JSONL provenance contract.
+- `docs/M6_IMPLEMENTATION.md` — competition product scope boundaries.
