@@ -77,7 +77,10 @@ object M1Speech {
             }
         }
         ttsRef = TextToSpeech(context) { status ->
-            val tts = ttsRef ?: return@TextToSpeech
+            // Post the callback to the main loop so ttsRef has been assigned,
+            // even if the engine invokes initialization synchronously.
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+            val tts = ttsRef ?: return@post
             if (status != TextToSpeech.SUCCESS) {
                 finish(tts, TtsResult(false, null, SystemClock.elapsedRealtime() - started, "TTS initialization failed"))
                 return@TextToSpeech
@@ -117,6 +120,7 @@ object M1Speech {
                 }
             } catch (error: RuntimeException) {
                 finish(tts, TtsResult(false, firstAudio, SystemClock.elapsedRealtime() - started, "TTS speak() failed: ${error.message ?: error::class.java.simpleName}"))
+            }
             }
         }
         return ttsRef
