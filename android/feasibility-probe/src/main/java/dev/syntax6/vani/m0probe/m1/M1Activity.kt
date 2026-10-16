@@ -10,11 +10,18 @@ import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.text.Editable
+import android.text.TextWatcher
+import dev.syntax6.vani.m0probe.m2.M2Activity
+import dev.syntax6.vani.m0probe.m2.M2Language
 import dev.syntax6.vani.m0probe.MainActivity
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
@@ -32,7 +39,7 @@ class M1Activity : Activity() {
     private lateinit var networkStatus: TextView
     private lateinit var stateText: TextView
     private lateinit var transcript: EditText
-    private lateinit var localeInput: EditText
+    private lateinit var localeInput: Spinner
     private lateinit var hostInput: EditText
     private lateinit var sendButton: Button
     private lateinit var hostButton: Button
@@ -58,18 +65,24 @@ class M1Activity : Activity() {
         fun edit(value: String, hint: String): EditText = EditText(this).apply { setText(value); this.hint = hint; setSingleLine(true) }
         fun button(label: String) = Button(this).apply { text = label }
 
-        root.addView(text("VĀṆI · M1 Offline Loop", 25f))
-        root.addView(text("PTT → offline STT → editable text → semantic bundle → local Wi-Fi → offline TTS → ACK", 14f))
+        root.addView(text("VĀṆI · Offline Communications", 25f))
+        root.addView(text("Experimental on-device speech service · Local Wi-Fi · M1 direct protocol. Open-source speech-model compliance and physical testing are not yet established.", 14f))
         networkStatus = text("").apply { setPadding(0, 16, 0, 8) }
         root.addView(networkStatus)
         root.addView(button("Refresh network state").apply { setOnClickListener { refreshNetworkStatus() } })
         root.addView(button("Open M0 feasibility probe").apply {
             setOnClickListener { startActivity(Intent(this@M1Activity, MainActivity::class.java)) }
         })
+        root.addView(button("Ten-language capability / M2").apply {
+            setOnClickListener { startActivity(Intent(this@M1Activity, M2Activity::class.java)) }
+        })
 
         stateText = text("State: IDLE").apply { setPadding(0, 12, 0, 8) }
         root.addView(stateText)
-        localeInput = edit("hi-IN", "STT/TTS locale")
+        localeInput = Spinner(this).apply {
+            adapter = ArrayAdapter(this@M1Activity, android.R.layout.simple_spinner_dropdown_item,
+                M2Language.entries.map { "${it.displayName} · ${it.nativeName} (${it.localeTag})" })
+        }
         root.addView(localeInput)
         transcript = edit("", "Transcript / editable message")
         transcript.minLines = 3
@@ -92,10 +105,20 @@ class M1Activity : Activity() {
         root.addView(hostButton)
         sendButton = button("Send message").apply { isEnabled = false; setOnClickListener { sendMessage() } }
         root.addView(sendButton)
+        transcript.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                sendButton.isEnabled = !s.isNullOrBlank()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
         metrics = text("No M1 run yet.", 13f).apply { setPadding(0, 16, 0, 8); setTextIsSelectable(true) }
         root.addView(metrics)
-        return root
+        return ScrollView(this).apply { fillViewport = true; addView(root) }
     }
+
+    private fun selectedLocaleTag(): String =
+        M2Language.entries[localeInput.selectedItemPosition].localeTag
 
     private fun refreshNetworkStatus() {
         val cm = getSystemService(ConnectivityManager::class.java)
@@ -111,7 +134,7 @@ class M1Activity : Activity() {
             stateText.text = "State: MICROPHONE PERMISSION REQUIRED"
             return
         }
-        val locale = localeInput.text.toString().trim().ifBlank { "hi-IN" }
+        val locale = selectedLocaleTag()
         transcript.text.clear()
         stateText.text = "State: LISTENING · endpointing handled by on-device recognizer"
         recognizer = M1Speech.startOfflineAsr(this, locale) { result ->
@@ -175,7 +198,7 @@ class M1Activity : Activity() {
     private fun sendMessage() {
         val host = hostInput.text.toString().trim()
         val text = transcript.text.toString().trim()
-        val locale = localeInput.text.toString().trim().ifBlank { "hi-IN" }
+        val locale = selectedLocaleTag()
         if (host.isBlank()) { hostInput.error = "Enter receiver IPv4 address"; return }
         if (text.isBlank()) { transcript.error = "Transcript is empty"; return }
         if (isValidatedInternetAvailable()) {
