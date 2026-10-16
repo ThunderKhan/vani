@@ -32,6 +32,11 @@ def test_score_identical_and_missing_negation():
     assert wrong["word_edits"] >= 1
 
 
+def test_empty_asr_hypothesis_is_scored_as_failure():
+    row = module.clean_observation(observation(hypothesis=""), 1)
+    assert module.summarise([row])["wer"] == 1.0
+
+
 def test_critical_fields_only_scored_when_annotated():
     unknown = module.summarise([observation()])
     assert unknown["critical_field_accuracy"] is None
