@@ -17,8 +17,8 @@ android {
         applicationId = "dev.syntax6.vani.m0probe"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0-m4"
+        versionCode = 4
+        versionName = "0.3.0-field-alpha"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
     }
 
