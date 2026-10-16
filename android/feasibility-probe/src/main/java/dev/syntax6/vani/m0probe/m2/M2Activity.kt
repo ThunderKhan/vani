@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import dev.syntax6.vani.m0probe.m1.M1Speech
@@ -94,7 +95,7 @@ class M2Activity : Activity() {
             setTextIsSelectable(true)
         }
         root.addView(results)
-        return root
+        return ScrollView(this).apply { fillViewport = true; addView(root) }
     }
 
     private fun selectedLanguage(): M2Language = M2Language.entries[languageSpinner.selectedItemPosition]
