@@ -227,6 +227,17 @@ class VaniFieldActivity : Activity() {
         tiles.addView(statCard(queued.toString(), "Queued"), LinearLayout.LayoutParams(0, dp(88), 1f))
         col.addView(tiles)
         col.addView(spacing(18))
+        if (sessionKey == null || recipientId.isBlank() ||
+            (if (useBluetooth) bluetoothAddress.isBlank() else wifiAddress.isBlank())) {
+            val setup = surfaceCard()
+            setup.addView(text("FINISH LOCAL SETUP", 11f, GOLD, true))
+            setup.addView(text("Select an adjacent peer, assign its identity, and load a shared key before transmitting.",
+                13f, FG))
+            setup.addView(spacing(8))
+            setup.addView(button("Configure secure link", true) { showPage(Page.CONNECT) })
+            col.addView(setup)
+            col.addView(spacing(12))
+        }
         col.addView(button("Refresh messages", false) { showPage(Page.MESSAGES) })
         col.addView(spacing(12))
         if (history.isEmpty()) {
@@ -504,6 +515,11 @@ class VaniFieldActivity : Activity() {
         col.addView(text("Selected: " + (if (useBluetooth) "Bluetooth Classic / RFCOMM" else "Private local Wi-Fi / TCP"),
             13f, ACCENT, true))
         col.addView(spacing(10))
+        if (!useBluetooth) {
+            col.addView(text("Local IPv4 candidates: " + localIpCandidates(), 12f, MUTED))
+            col.addView(text("Receiver uses TCP port " + M4LocalWifiTransport.PORT + ". " +
+                "Both phones need a directly reachable local Wi-Fi link.", 12f, MUTED))
+        }
         if (useBluetooth) {
             col.addView(text("Paired peer: " + bluetoothAddress.ifBlank { "Not selected" }, 13f, FG))
             col.addView(button("Select paired Android Bluetooth device", false) { pickBluetoothPeer() })
@@ -836,6 +852,21 @@ class VaniFieldActivity : Activity() {
             onChanged(s?.toString().orEmpty())
         }
         override fun afterTextChanged(s: Editable?) = Unit
+    }
+
+    private fun localIpCandidates(): String {
+        return try {
+            java.net.NetworkInterface.getNetworkInterfaces().toList()
+                .filter { it.isUp && !it.isLoopback }
+                .flatMap { it.inetAddresses.toList() }
+                .filterIsInstance<java.net.Inet4Address>()
+                .filter { !it.isLoopbackAddress && (it.isSiteLocalAddress || it.isLinkLocalAddress) }
+                .map { it.hostAddress.orEmpty() }
+                .distinct()
+                .take(4)
+                .joinToString(", ")
+                .ifBlank { "none detected" }
+        } catch (_: Exception) { "not available" }
     }
 
     private fun updateNotice(value: String) {
