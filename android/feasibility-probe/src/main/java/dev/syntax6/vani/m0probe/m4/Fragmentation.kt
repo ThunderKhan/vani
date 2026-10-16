@@ -40,7 +40,8 @@ object M4FrameCodec {
         val total = b.int; val length = b.int
         require(length == bytes.size - HEADER_BYTES - CRC_BYTES) { "frame payload length mismatch" }
         require(count in 1..M4_MAX_FRAGMENTS && index in 0 until count) { "invalid fragment bounds" }
-        require(total in 1..M4_MAX_BUNDLE_BYTES) { "invalid total length" }
+        require(total in 1..M4_MAX_BUNDLE_BYTES && count <= total) { "invalid total length" }
+        require(length > 0 && length <= total) { "invalid fragment payload length" }
         val payload = ByteArray(length); b.get(payload)
         return M4Frame(id, index, count, total, payload)
     }
@@ -48,7 +49,7 @@ object M4FrameCodec {
     private fun validate(frame: M4Frame) {
         require(frame.fragmentCount in 1..M4_MAX_FRAGMENTS)
         require(frame.fragmentIndex in 0 until frame.fragmentCount)
-        require(frame.totalLength in 1..M4_MAX_BUNDLE_BYTES)
+        require(frame.totalLength in 1..M4_MAX_BUNDLE_BYTES && frame.fragmentCount <= frame.totalLength)
         require(frame.payload.isNotEmpty() && frame.payload.size <= MAX_FRAME_BYTES - HEADER_BYTES - CRC_BYTES)
         require(frame.totalLength >= frame.payload.size)
     }
@@ -66,25 +67,58 @@ object M4FrameCodec {
     }
 }
 
-class FragmentReassembler(private val now: () -> Long = { System.currentTimeMillis() }) {
-    private data class State(val total: Int, val count: Int, val parts: MutableMap<Int, ByteArray>, var lastSeen: Long)
+class FragmentReassembler(
+    private val now: () -> Long = { System.currentTimeMillis() },
+    private val maxPendingMessages: Int = 64,
+    private val maxBufferedBytes: Int = 512 * 1024,
+) {
+    init {
+        require(maxPendingMessages in 1..1024)
+        require(maxBufferedBytes in M4_MAX_BUNDLE_BYTES..(16 * 1024 * 1024))
+    }
+
+    private data class State(
+        val total: Int,
+        val count: Int,
+        val parts: MutableMap<Int, ByteArray>,
+        var lastSeen: Long,
+    )
     private val states = linkedMapOf<UUID, State>()
 
+    @Synchronized
     fun accept(frameBytes: ByteArray): ByteArray? {
         val frame = M4FrameCodec.decode(frameBytes)
-        val state = states.getOrPut(frame.messageId) { State(frame.totalLength, frame.fragmentCount, linkedMapOf(), now()) }
-        require(state.total == frame.totalLength && state.count == frame.fragmentCount) { "conflicting fragment metadata" }
+        val existing = states[frame.messageId]
+        if (existing == null) require(states.size < maxPendingMessages) { "reassembly message limit" }
+        val state = existing ?: State(frame.totalLength, frame.fragmentCount, linkedMapOf(), now()).also {
+            states[frame.messageId] = it
+        }
+        require(state.total == frame.totalLength && state.count == frame.fragmentCount) {
+            "conflicting fragment metadata"
+        }
         state.lastSeen = now()
-        if (state.parts.putIfAbsent(frame.fragmentIndex, frame.payload) != null) return null
+        val old = state.parts[frame.fragmentIndex]
+        if (old != null) {
+            require(old.contentEquals(frame.payload)) { "conflicting duplicate fragment" }
+            return null
+        }
+        val currentBytes = state.parts.values.sumOf { it.size }
+        require(currentBytes + frame.payload.size <= state.total) { "fragments exceed declared length" }
+        require(bufferedBytes() + frame.payload.size <= maxBufferedBytes) { "reassembly byte limit" }
+        state.parts[frame.fragmentIndex] = frame.payload
         if (state.parts.size != state.count) return null
+
         val out = ByteArrayOutputStream(state.total)
         for (i in 0 until state.count) out.write(state.parts[i] ?: return null)
         val result = out.toByteArray()
-        require(result.size == state.total) { "reassembled length mismatch" }
         states.remove(frame.messageId)
+        require(result.size == state.total) { "reassembled length mismatch" }
         return result
     }
 
+    private fun bufferedBytes(): Int = states.values.sumOf { entry -> entry.parts.values.sumOf { it.size } }
+
+    @Synchronized
     fun expireOlderThan(ageMillis: Long): Int {
         require(ageMillis >= 0)
         val cutoff = now() - ageMillis
@@ -93,5 +127,5 @@ class FragmentReassembler(private val now: () -> Long = { System.currentTimeMill
         return before - states.size
     }
 
-    fun pendingCount(): Int = states.size
+    @Synchronized fun pendingCount(): Int = states.size
 }

@@ -35,3 +35,18 @@ Tested in code = deterministic unit/instrumentation tests exist and are runnable
 Physically validated = deliberately still pending.
 
 Measured = no M4 physical performance numbers have been recorded yet.
+
+## October integration (research branch)
+
+The integration branch adds `M4LocalWifiTransport` (bounded frame transport with only
+adjacent-peer receipts), `M4DirectActivity` (manually supplied shared key,
+authenticated binary messaging, receiver-side platform TTS, one-hour retained
+outbox with user-triggered retry), `AuthenticatedRelayEnvelopeCodec` (HMAC
+routing-domain wrapper), atomically stored seen markers and inbox records, and
+bounded in-memory reassembly. `M4DeliveryEngine` now requires an explicitly
+provisioned `MessageProtector` and checks source/destination identity.
+
+**Not implemented:** actual BLE scanning/GATT transport, automatic relay
+scheduler, physical third-phone routing, signed end-recipient receipts, human
+ACK workflow, production key exchange, and a final app-scope replacement for
+M1 JSON/TCP. No successful device test or authenticated mesh claim is made.
