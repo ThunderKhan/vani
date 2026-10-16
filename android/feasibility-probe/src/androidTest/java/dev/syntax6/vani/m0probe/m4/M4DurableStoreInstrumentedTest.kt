@@ -70,6 +70,14 @@ class M4DurableStoreInstrumentedTest {
         assertEquals(3, store.get(message.messageId)!!.retries)
     }
 
+    @Test fun authenticatedInboxReplayMarkerAndRecordAreOneTransaction() {
+        val message = message(UUID.randomUUID(), 1000L, 10_000L, M4Priority.ROUTINE)
+        val bytes = CanonicalBinaryBundleCodec().encode(message)
+        assertTrue(store.persistReceivedIfNew(bytes, message, now = 1000L))
+        assertEquals(DeliveryState.DELIVERED_DEVICE, store.state(message.messageId))
+        assertFalse(store.persistReceivedIfNew(bytes, message, now = 1001L))
+    }
+
     @Test fun fragmentRecordsSurviveRestart() {
         val id = UUID.randomUUID()
         val frame = M4Frame(id, 0, 2, 4, byteArrayOf(1, 2))
