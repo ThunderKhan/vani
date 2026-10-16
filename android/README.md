@@ -62,3 +62,30 @@ The probe frame is deliberately tiny and temporary:
 - no allocation from an unbounded remote length field.
 
 Production cryptographic authentication/encryption belongs to later milestones and must use audited primitives. Do not present this probe framing as the final VĀṆI wire protocol.
+
+## Field UI alpha (October 2026, integration branch)
+
+The main launcher is now `dev.syntax6.vani.m0probe.ui.VaniFieldActivity`.
+It is a dependency-light native Android screen, not the disposable M0 probe.
+It exposes **Inbox**, **Speak/Send**, **Links** and **Tools**, while keeping M0,
+M1, M2 and M4 diagnostics accessible for final testing.
+
+Two local peer transports can be selected:
+- M4 local Wi-Fi/TCP (manually supplied private IPv4, port `42426`);
+- M4 paired Bluetooth Classic RFCOMM (UUID defined in `BluetoothTransport.kt`;
+  manual OS pairing, Android 12+ `BLUETOOTH_CONNECT` permission).
+
+For either mode the receiver must be explicitly started, the recipient
+identities must match, and an identical 256-bit AES-GCM key must be supplied to
+the two endpoints **without saving that key**. The current UI exposes a manual
+key exchange workflow only; it cannot authenticate the identity of the person
+who provided the key. The receiver is foreground/process-bound.
+
+`ui/M5DiagnosticsActivity` shows actual local message-store metadata and can
+export redacted JSON through Android's document picker. It explicitly labels
+missing speech/energy/relay measurements.
+
+**This remains a field ALPHA**; it has not passed full-device validation.
+Open-source offline model integration and BLE multi-hop routing are still
+required for final SIH compliance. See `docs/FIELD_UI_DESIGN.md` and
+`docs/FIELD_DEVICE_RUNBOOK.md`.
