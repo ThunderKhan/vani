@@ -186,7 +186,7 @@ class M1Activity : Activity() {
                 error = result.error
                 if (result.success) store.markPlayed(message.id)
                 stateText.text = if (result.success) "State: DELIVERED · PLAYED" else "State: DELIVERY_FAILED · ${result.error}"
-                metrics.text = "RX bundle=${bytes} bytes · safety=${message.safetyAction} · critical-fields=${message.criticalFields.size} · TTS first-audio=${result.firstAudioMillis ?: -1} ms · TTS total=${result.totalMillis} ms"
+                metrics.text = "RX bundle=${bytes} bytes · safety=${message.safetyAction} · critical-fields=${message.criticalFields.size} · TTS first generated audio=${result.firstAudioMillis ?: -1} ms · TTS total=${result.totalMillis} ms"
                 latch.countDown()
             }
         }
@@ -252,8 +252,8 @@ class M1Activity : Activity() {
                 if (finalResult?.delivered == true) store.setState(message.id, M1DeliveryState.DELIVERED)
                 if (finalResult?.acknowledged == true && finalResult.delivered) {
                     store.setState(message.id, M1DeliveryState.ACKNOWLEDGED)
-                    stateText.text = "State: ACKNOWLEDGED · ${message.id}"
-                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ncritical-fields=%d\nsafety-action=%s\nend-to-end=%d ms\nreceiver TTS first-audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, message.criticalFields.size, message.safetyAction, finalResult.endToEndMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
+                    stateText.text = "State: DEVICE ACK RECEIVED · TTS reported completion · ${message.id}"
+                    metrics.text = String.format(Locale.US, "message=%s\nbundle=%d bytes\ncritical-fields=%d\nsafety-action=%s\nend-to-end=%d ms\nreceiver TTS first generated audio=%s ms\nend-to-end=%d ms\nduplicate=%s\nretry policy=one retry", message.id, finalResult.bundleBytes, message.criticalFields.size, message.safetyAction, finalResult.endToEndMillis, finalResult.ttsFirstAudioMillis ?: "n/a", finalResult.endToEndMillis, finalResult.duplicate)
                 } else {
                     store.setState(message.id, M1DeliveryState.FAILED)
                     stateText.text = "State: FAILED · peer/ACK unavailable"
