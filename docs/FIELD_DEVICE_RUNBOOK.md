@@ -22,6 +22,14 @@
 6. In **Inbox**, select the actual received item and load the correct key to view/replay locally. Auto playback is opt-in.
 7. If transfer is not accepted, use **Retry queued messages** with the *same destination*, preserving the message ID and bundle bytes.
 
+## Optional urgent alerts
+
+In **Links**, the user can explicitly enable urgent system notifications.
+On Android 13+, grant notification permission if desired. Only M4 messages
+classified `URGENT` may trigger the normal notification channel, at most
+once per 30 seconds in the running process. Notification bodies never show
+private transcripts. Alert audio/DND override is not implemented or claimed.
+
 ## Evidence phase (not yet executed)
 
 - With internet blocked, verify physical STT/TTS availability for every language individually.
