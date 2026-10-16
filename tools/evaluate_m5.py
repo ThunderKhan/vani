@@ -69,7 +69,7 @@ def clean_observation(obj: Any, line: int) -> dict[str, Any]:
     if not isinstance(obj, dict):
         raise ValueError(f"line {line}: each observation must be an object")
     for key in MANDATORY:
-        if key not in obj or not isinstance(obj[key], str) or not obj[key].strip():
+        if key not in obj or not isinstance(obj[key], str) or (key != "hypothesis" and not obj[key].strip()):
             raise ValueError(f"line {line}: missing/nonempty string required for {key}")
     if obj["language"] not in LANGUAGES:
         raise ValueError(f"line {line}: unsupported language {obj['language']!r}")
