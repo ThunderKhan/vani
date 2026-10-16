@@ -95,8 +95,13 @@ object M1Speech {
             val utteranceId = "m1-${SystemClock.elapsedRealtimeNanos()}"
             var firstAudio: Long? = null
             tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(id: String?) {
-                    if (id == utteranceId && firstAudio == null) firstAudio = SystemClock.elapsedRealtime() - started
+                override fun onStart(id: String?) = Unit
+                // TTS onStart only reports that synthesis/playback began. Do not
+                // mislabel that event as first generated audio.
+                override fun onAudioAvailable(id: String?, audio: ByteArray?) {
+                    if (id == utteranceId && !audio.isNullOrEmpty() && firstAudio == null) {
+                        firstAudio = SystemClock.elapsedRealtime() - started
+                    }
                 }
                 override fun onDone(id: String?) {
                     if (id == utteranceId) finish(tts, TtsResult(true, firstAudio, SystemClock.elapsedRealtime() - started, null))
