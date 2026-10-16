@@ -8,6 +8,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.util.UUID
+import java.util.concurrent.Semaphore
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -75,6 +76,7 @@ class M4BluetoothTransport(context: Context) : M4Transport {
         private val onStatus: (String) -> Unit = {},
     ) {
         private val running = AtomicBoolean(false)
+        private val permits = Semaphore(4)
         @Volatile private var listener: BluetoothServerSocket? = null
         private val peers = mutableSetOf<BluetoothSocket>()
 
@@ -90,10 +92,17 @@ class M4BluetoothTransport(context: Context) : M4Transport {
                         onStatus("Paired-device Bluetooth receiver is listening")
                         while (running.get()) {
                             val socket = server.accept()
+                            if (!permits.tryAcquire()) {
+                                socket.close()
+                                continue
+                            }
                             synchronized(peers) { peers.add(socket) }
                             executor.execute {
                                 try { handle(socket) }
-                                finally { synchronized(peers) { peers.remove(socket) } }
+                                finally {
+                                    synchronized(peers) { peers.remove(socket) }
+                                    permits.release()
+                                }
                             }
                         }
                     }
