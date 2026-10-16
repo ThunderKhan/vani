@@ -123,6 +123,6 @@ object M1Speech {
             }
             }
         }
-        return ttsRef
+        return requireNotNull(ttsRef) { "TextToSpeech constructor did not produce an engine" }
     }
 }
