@@ -133,7 +133,7 @@ class M4LocalWifiTransport : M4Transport {
             val parts = host.split('.')
             require(parts.size == 4 && parts.all { part ->
                 part.isNotEmpty() && part.length <= 3 &&
-                    part.all(Char::isDigit) && part.toIntOrNull() in 0..255
+                    part.all(Char::isDigit) && (part.toIntOrNull()?.let { it in 0..255 } == true)
             }) { "manual local peer must be a numeric IPv4 address" }
             require(host != "0.0.0.0" && host != "255.255.255.255") { "invalid peer address" }
         }
