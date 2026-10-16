@@ -30,3 +30,31 @@ Required before a truthful competition-ready declaration:
 Do not call platform-recognizer availability an open-source model license.
 Do not call an M4 adjacent-peer receipt destination delivery. 
 All physical, speech and security claims await the final verification stage.
+
+## 17 October field UI + Bluetooth increment (separate integration branch)
+
+Added an original native Android Views product shell, inspired by Google Jetchat
+(Apache-2.0 **design interaction reference**, no source copied) and off-grid
+device-status conventions. There are now Inbox, Speak/Send, Links and Tools pages,
+and the app launcher opens this shell. Other research activities remain accessible.
+
+Source additions:
+- `ui/VaniFieldActivity.kt`: high-contrast responsive Android layout with
+  persisted non-secret peer preferences, runtime-only AES key, PTT input,
+  language selector, M3 confirmation, M4 encrypted send, user-controlled TTS
+  replay, actual ciphertext inbox ledger, and manual recipient-scoped retry;
+- `m4/BluetoothTransport.kt`: bounded paired Bluetooth Classic RFCOMM frame
+  exchange with adjacent-peer receipts, **not BLE or Bluetooth Mesh**;
+- `ui/M5DiagnosticsActivity.kt`: actual local delivery counts and redacted
+  user-initiated JSON export; no invented model/network timings;
+- adaptive Vāṇī launcher icon; Android manifest permissions/activities;
+- `docs/FIELD_UI_DESIGN.md` and `docs/FIELD_DEVICE_RUNBOOK.md`.
+
+Remaining competition blockers are unchanged in principle: verified and
+licensable open-source speech weights/runtimes for all ten languages; dedicated
+VAD/endpointing and accessible conversation mode; BLE/GATT and automatic
+multi-hop/DTN relaying; authenticated device/person receipts and trusted key
+onboarding; lifecycle-safe background receiving; real performance and physical
+human-comprehension evidence; safety/priority authorization and final UX
+validation. A working Bluetooth Classic direct carrier does not satisfy BLE
+mesh/multi-hop evidence. No new physical testing was performed.
