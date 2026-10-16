@@ -40,6 +40,14 @@ Destination and current carrier, language control for ten mandated locales, edit
 ### Links
 Edit local/destination identities, choose local Wi-Fi IPv4 or already-paired Bluetooth Classic peer, configure AES-GCM shared key **in memory only**, start/stop an active listener, manually retry queued records with preserved IDs, and toggle ordinary receiver speech playback. Internet status is displayed as an observation, not as proof of a successful offline test.
 
+### Urgent notification consent
+Only explicitly enabled URGENT messages may generate a normal Android
+high-importance notification. Notifications include no transcript, are rate
+limited and use Android 13+ runtime `POST_NOTIFICATIONS` consent; they respect
+channel settings, Do Not Disturb and user control. There is no claim of forced
+maximum volume, non-interruptibility, privileged distress rights or guaranteed
+attention.
+
 ### Tools
 M0 Unicode feasibility, M1 prototype, M2 language research, M4 direct-link diagnostics, and M5 truthful redacted metrics/export. Tools are visibly experimental so unfinished scientific features do not masquerade as user-ready messaging.
 
