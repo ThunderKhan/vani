@@ -103,6 +103,11 @@ class VaniFieldActivity : Activity() {
         showPage(Page.MESSAGES)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        showPage(Page.MESSAGES) // Notification taps refresh actual encrypted inbox state.
+    }
+
     override fun onDestroy() {
         stopListeners()
         runCatching { recognizer?.destroy() }
