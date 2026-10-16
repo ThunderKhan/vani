@@ -103,7 +103,7 @@ class VaniFieldActivity : Activity() {
 
     override fun onDestroy() {
         stopListeners()
-        recognizer?.destroy()
+        runCatching { recognizer?.destroy() }
         sessionKey?.fill(0)
         sessionKey = null
         executor.shutdownNow()
@@ -345,7 +345,7 @@ class VaniFieldActivity : Activity() {
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> { startSpeech(); true }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        recognizer?.stopListening()
+                        runCatching { recognizer?.stopListening() }
                         true
                     }
                     else -> true
@@ -354,7 +354,7 @@ class VaniFieldActivity : Activity() {
         })
         col.addView(button("Tap to start capture (accessibility alternative)", false) { startSpeech() })
         col.addView(spacing(6))
-        col.addView(button("Stop speech capture", false) { recognizer?.stopListening() })
+        col.addView(button("Stop speech capture", false) { runCatching { recognizer?.stopListening() } })
         col.addView(spacing(15))
         col.addView(text("Transmission priority", 13f, MUTED, true))
         val priorityRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -389,7 +389,7 @@ class VaniFieldActivity : Activity() {
             updateNotice("Microphone permission required; retry speech capture after granting it.")
             return
         }
-        recognizer?.destroy()
+        runCatching { recognizer?.destroy() }
         updateNotice("Using device-provided on-device ASR (open-source model compliance is not established).")
         recognizer = M1Speech.startOfflineAsr(this, language.localeTag) { result ->
             runOnUiThread {
