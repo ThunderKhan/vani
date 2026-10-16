@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VĀṆI M5 observation (one JSONL line)",
+  "type": "object",
+  "required": [
+    "experiment_id",
+    "git_commit",
+    "device_id",
+    "model_id",
+    "language",
+    "transport",
+    "run_kind",
+    "reference",
+    "hypothesis"
+  ],
+  "properties": {
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "git_commit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "language": {
+      "enum": [
+        "hi",
+        "gu",
+        "mr",
+        "kn",
+        "ml",
+        "ta",
+        "te",
+        "or",
+        "bn",
+        "en"
+      ]
+    },
+    "transport": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_kind": {
+      "enum": [
+        "real_device",
+        "simulation"
+      ]
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    "critical_fields": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "expected",
+          "observed"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "delivery_state": {
+      "enum": [
+        "queued",
+        "transferred",
+        "relayed",
+        "delivered_device",
+        "playback_started",
+        "acknowledged_person",
+        "expired",
+        "failed"
+      ]
+    },
+    "e2e_latency_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "payload_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "audio_reference_bytes": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
