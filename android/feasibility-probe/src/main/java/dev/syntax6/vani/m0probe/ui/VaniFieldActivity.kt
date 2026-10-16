@@ -72,6 +72,7 @@ class VaniFieldActivity : Activity() {
     private var urgency = M4Priority.ROUTINE
     private var useBluetooth = false
     private var autoSpeak = false
+    private var urgentAlerts = false
     private var page = Page.MESSAGES
     private var notice = "Prepare a shared key and select a local transport to begin."
 
@@ -94,6 +95,7 @@ class VaniFieldActivity : Activity() {
         bluetoothAddress = prefs.getString("bluetooth", "").orEmpty()
         useBluetooth = prefs.getBoolean("bluetooth_mode", false)
         autoSpeak = prefs.getBoolean("auto_speak", false)
+        urgentAlerts = prefs.getBoolean("urgent_notify", false)
         prefs.edit().putString("self", selfId).apply()
         window.statusBarColor = DARK
         window.navigationBarColor = DARK
@@ -591,6 +593,35 @@ class VaniFieldActivity : Activity() {
         })
         audio.addView(text("Audio respects Android's normal user volume and focus policy.", 12f, MUTED))
         col.addView(audio)
+        col.addView(spacing(10))
+        val alerts = surfaceCard()
+        alerts.addView(text("URGENT NOTIFICATIONS", 12f, GOLD, true))
+        alerts.addView(text(
+            if (urgentAlerts) "Urgent notification preference enabled"
+            else "No system alerts for incoming urgent messages",
+            13f, FG
+        ))
+        alerts.addView(button(if (urgentAlerts) "Disable urgent notifications" else "Enable urgent notifications",
+            false) {
+            if (urgentAlerts) {
+                urgentAlerts = false
+                prefs.edit().putBoolean("urgent_notify", false).apply()
+                showPage(Page.CONNECT)
+            } else {
+                if (Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4103)
+                    updateNotice("Android notification permission is required for urgent alerts.")
+                } else {
+                    urgentAlerts = true
+                    prefs.edit().putBoolean("urgent_notify", true).apply()
+                    showPage(Page.CONNECT)
+                }
+            }
+        })
+        alerts.addView(text("Urgent alerts have a 30-second rate limit, never reveal transcript content, " +
+            "and respect notification permissions and Do Not Disturb.", 12f, MUTED))
+        col.addView(alerts)
     }
 
     private fun generateKey() {
@@ -654,6 +685,7 @@ class VaniFieldActivity : Activity() {
         val handler: (ByteArray) -> Boolean = { encrypted ->
             try {
                 val incoming = engine.acceptBundle(encrypted)
+                runCatching { VaniNotification.maybePost(this, incoming) }
                 updateNotice("Received and authenticated message from " + incoming.sourceId +
                     ". Open Inbox to view it.")
                 if (autoSpeak) {
@@ -885,6 +917,15 @@ class VaniFieldActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int,
         permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 4103) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+                urgentAlerts = true
+                prefs.edit().putBoolean("urgent_notify", true).apply()
+                showPage(Page.CONNECT)
+                updateNotice("Android urgent notifications are enabled by user permission.")
+            } else updateNotice("Urgent notification permission denied; alerts stay off.")
+            return
+        }
         if (requestCode == 4101 || requestCode == 4102) {
             updateNotice(if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
                 "Permission granted. Repeat the requested action."
