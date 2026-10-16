@@ -339,7 +339,20 @@ class VaniFieldActivity : Activity() {
         composer = edit
         col.addView(edit)
         col.addView(spacing(8))
-        col.addView(button("Start on-device speech capture", false) { startSpeech() })
+        col.addView(button("Hold to speak • release to stop", true) {}.apply {
+            contentDescription = "Push to talk. Hold while speaking, release to finish capture."
+            setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> { startSpeech(); true }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        recognizer?.stopListening()
+                        true
+                    }
+                    else -> true
+                }
+            }
+        })
+        col.addView(button("Tap to start capture (accessibility alternative)", false) { startSpeech() })
         col.addView(spacing(6))
         col.addView(button("Stop speech capture", false) { recognizer?.stopListening() })
         col.addView(spacing(15))
@@ -405,7 +418,17 @@ class VaniFieldActivity : Activity() {
                 updateNotice("Cannot assess safety-critical fields: " + error.message)
                 return
             }
-        val send = { sendAssessed(assessment.rawText, assessment.action, assessment.fields, key, target) }
+        val sender = selfId
+        val receiver = recipientId
+        val selectedLanguage = language
+        val selectedUrgency = urgency
+        val viaBluetooth = useBluetooth
+        val send = {
+            sendAssessed(
+                assessment.rawText, assessment.action, assessment.fields,
+                key, target, sender, receiver, selectedLanguage, selectedUrgency, viaBluetooth
+            )
+        }
         if (assessment.action == SafetyAction.SEND) send()
         else AlertDialog.Builder(this)
             .setTitle("Confirm critical information")
@@ -422,13 +445,15 @@ class VaniFieldActivity : Activity() {
     private fun sendAssessed(
         value: String, safety: SafetyAction,
         fields: List<dev.syntax6.vani.m0probe.m1.CriticalField>,
-        key: ByteArray, target: String,
+        key: ByteArray, target: String, sender: String, receiver: String,
+        selectedLanguage: M2Language, selectedUrgency: M4Priority,
+        viaBluetooth: Boolean,
     ) {
         val m1 = M1Message(
-            languageTag = language.localeTag, text = value,
+            languageTag = selectedLanguage.localeTag, text = value,
             createdElapsedNanos = System.nanoTime(),
-            source = selfId, destination = recipientId,
-            priority = urgency.wire, expiresAfterMillis = 3_600_000L,
+            source = sender, destination = receiver,
+            priority = selectedUrgency.wire, expiresAfterMillis = 3_600_000L,
             safetyAction = safety, criticalFields = fields,
         )
         val bundle = M4ProtocolAdapter.fromM1(m1).copy(
@@ -438,9 +463,9 @@ class VaniFieldActivity : Activity() {
         executor.execute {
             try {
                 val protector = AesGcmMessageProtector(SecretKeySpec(key, "AES"))
-                val engine = M4DeliveryEngine(store, protector, selfId)
+                val engine = M4DeliveryEngine(store, protector, sender)
                 val bytes = engine.enqueue(bundle)
-                val result = transmit(target, M4FrameCodec.fragment(bundle.messageId, bytes))
+                val result = transmit(target, M4FrameCodec.fragment(bundle.messageId, bytes), viaBluetooth)
                 if (result.accepted) store.transition(bundle.messageId, DeliveryState.TRANSFERRED)
                 updateNotice(
                     if (result.accepted) "Adjacent peer accepted encrypted message. Human receipt unconfirmed."
@@ -454,8 +479,8 @@ class VaniFieldActivity : Activity() {
         }
     }
 
-    private fun transmit(target: String, frames: List<ByteArray>): TransferReceipt =
-        if (useBluetooth) M4BluetoothTransport(this).send(PeerId(target), frames)
+    private fun transmit(target: String, frames: List<ByteArray>, bluetooth: Boolean): TransferReceipt =
+        if (bluetooth) M4BluetoothTransport(this).send(PeerId(target), frames)
         else M4LocalWifiTransport().send(PeerId(target), frames)
 
     private fun renderConnect(col: LinearLayout) {
@@ -510,6 +535,7 @@ class VaniFieldActivity : Activity() {
             if (!raw.matches(Regex("^[0-9a-fA-F]{64}$"))) {
                 keyEntry.error = "Provide a 64-character hexadecimal key"; return@button
             }
+            stopListeners() // Existing sockets are bound to the previous key/identity.
             sessionKey?.fill(0)
             sessionKey = ByteArray(32) { i -> raw.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
             keyEntry.text.clear()
@@ -531,7 +557,8 @@ class VaniFieldActivity : Activity() {
         })
         col.addView(spacing(10))
         col.addView(button("Retry queued messages (keep IDs)", false) { retryQueued() })
-        col.addView(text("Manual retry only. Automatic opportunistic relaying and Bluetooth LE discovery " +
+        col.addView(text("A running receiver captures its identity and key at startup. Restart it after changing either. " +
+            "Automatic opportunistic relaying and Bluetooth LE discovery " +
             "are not yet implemented.", 12f, MUTED))
         col.addView(spacing(16))
         val audio = surfaceCard()
@@ -551,6 +578,7 @@ class VaniFieldActivity : Activity() {
     }
 
     private fun generateKey() {
+        stopListeners()
         sessionKey?.fill(0)
         sessionKey = ByteArray(32).also { SecureRandom().nextBytes(it) }
         val hex = sessionKey!!.joinToString("") { "%02x".format(it.toInt() and 255) }
@@ -606,6 +634,7 @@ class VaniFieldActivity : Activity() {
         val key = sessionKey!!.copyOf()
         val identity = selfId
         val engine = M4DeliveryEngine(store, AesGcmMessageProtector(SecretKeySpec(key, "AES")), identity)
+        key.fill(0)
         val handler: (ByteArray) -> Boolean = { encrypted ->
             try {
                 val incoming = engine.acceptBundle(encrypted)
@@ -643,12 +672,17 @@ class VaniFieldActivity : Activity() {
 
     private fun retryQueued() {
         if (useBluetooth && !hasBluetoothPermission()) { requestBluetoothPermission(); return }
-        val target = if (useBluetooth) bluetoothAddress else wifiAddress
+        val viaBluetooth = useBluetooth
+        val target = if (viaBluetooth) bluetoothAddress else wifiAddress
+        val intendedRecipient = recipientId
         if (target.isBlank()) { updateNotice("Configure the adjacent peer address first."); return }
+        if (intendedRecipient.isBlank()) {
+            updateNotice("Select the recipient identity before retrying queued messages."); return
+        }
         executor.execute {
             try {
                 val records = store.pending(Direction.OUTBOX)
-                    .filter { it.state == DeliveryState.QUEUED }
+                    .filter { it.state == DeliveryState.QUEUED && it.destination == intendedRecipient }
                 var accepted = 0
                 var refused = 0
                 for (record in records) {
@@ -658,7 +692,7 @@ class VaniFieldActivity : Activity() {
                         continue
                     }
                     try {
-                        val result = transmit(target, M4FrameCodec.fragment(record.messageId, record.bundle))
+                        val result = transmit(target, M4FrameCodec.fragment(record.messageId, record.bundle), viaBluetooth)
                         if (result.accepted) {
                             store.transition(record.messageId, DeliveryState.TRANSFERRED)
                             accepted++
